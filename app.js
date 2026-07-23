@@ -1,6 +1,6 @@
 /**
  * Companion App - Complete Application Logic
- * Handles setup, routing, tasks, and real-time sync
+ * With PIN-based device linking system
  */
 
 // ============================================================================
@@ -14,22 +14,20 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwJJeWH4dgS6pJep1ieufBQ
 // ============================================================================
 
 const State = {
-  // User identity (from localStorage)
   user: {
-    id: null,           // 'user1' or 'user2'
-    name: null,         // 'Lean', 'Sarah', etc.
-    partnerName: null,  // Partner's name
-    partnerId: null     // 'user2' or 'user1'
+    id: null,
+    name: null,
+    partnerName: null,
+    partnerId: null,
+    syncPin: null
   },
 
-  // App state
   currentTheme: 'his',
-  currentPage: 'myTasks', // Changed default to myTasks
+  currentPage: 'myTasks',
   tasks: [],
   filterStatus: 'all',
-  filterContext: 'myTasks', // 'myTasks' or 'assignedToPartner'
+  filterContext: 'myTasks',
 
-  // Initialize from localStorage
   init() {
     const saved = localStorage.getItem('companion-user');
     if (saved) {
@@ -38,31 +36,30 @@ const State = {
     }
   },
 
-  // Save user to localStorage
-  setUser(name, partnerName) {
-    const userId = 'user1'; // First user gets user1
+  setUser(name, partnerName, syncPin) {
+    const userId = 'user1';
     const partnerId = 'user2';
 
     this.user = {
       id: userId,
       name: name,
       partnerName: partnerName,
-      partnerId: partnerId
+      partnerId: partnerId,
+      syncPin: syncPin
     };
 
-    this.currentTheme = 'his'; // user1 gets his theme
-
+    this.currentTheme = 'his';
     localStorage.setItem('companion-user', JSON.stringify(this.user));
   },
 
-  // Switch to partner view (for testing on same device)
   switchToPartner() {
     const isCurrent = this.user.id === 'user1';
     const newUser = {
       id: isCurrent ? 'user2' : 'user1',
       name: isCurrent ? this.user.partnerName : this.user.name,
       partnerName: isCurrent ? this.user.name : this.user.partnerName,
-      partnerId: isCurrent ? 'user1' : 'user2'
+      partnerId: isCurrent ? 'user1' : 'user2',
+      syncPin: this.user.syncPin
     };
 
     this.user = newUser;
@@ -70,7 +67,6 @@ const State = {
     localStorage.setItem('companion-user', JSON.stringify(this.user));
   },
 
-  // Add/update tasks
   setTasks(tasks) {
     this.tasks = tasks || [];
   },
@@ -90,7 +86,6 @@ const State = {
     this.tasks = this.tasks.filter(t => t.TaskID !== taskId);
   },
 
-  // Get filtered tasks
   getMyTasks(status = 'all') {
     let filtered = this.tasks.filter(t => t.AssignedTo === this.user.id);
     if (status === 'open') filtered = filtered.filter(t => t.Status !== 'completed');
@@ -115,14 +110,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   State.init();
 
-  // Register Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
       .then(() => console.log('✅ Service Worker registered'))
       .catch(err => console.error('❌ SW error:', err));
   }
 
-  // Show setup or main app
   setTimeout(() => {
     document.querySelector('.app-loading').style.display = 'none';
     document.getElementById('app').style.display = 'block';
@@ -137,28 +130,94 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================================================
-// SETUP WIZARD
+// SETUP WIZARD - STEPS
 // ============================================================================
 
 function showSetupWizard() {
   document.getElementById('setupWizard').style.display = 'flex';
   document.getElementById('mainApp').style.display = 'none';
-  document.getElementById('yourName').focus();
+  goToStep(1);
+}
+
+function goToStep(stepNumber) {
+  // Hide all steps
+  document.getElementById('setupStep1').classList.remove('active');
+  document.getElementById('setupStep2').classList.remove('active');
+
+  // Show requested step
+  if (stepNumber === 1) {
+    document.getElementById('setupStep1').classList.add('active');
+    setTimeout(() => document.getElementById('yourName').focus(), 100);
+  } else if (stepNumber === 2) {
+    // Validate step 1 first
+    const yourName = document.getElementById('yourName').value.trim();
+    const partnerName = document.getElementById('partnerName').value.trim();
+
+    if (!yourName || !partnerName) {
+      alert('Please enter both names');
+      return;
+    }
+
+    document.getElementById('setupStep2').classList.add('active');
+    updatePinForm();
+  }
+}
+
+function updatePinForm() {
+  const pinOption = document.getElementById('pinOption').value;
+  const pinInputDiv = document.getElementById('pinInputDiv');
+  const pinInput = document.getElementById('syncPin');
+  const pinMessage = document.getElementById('pinMessage');
+
+  if (pinOption === 'create') {
+    // Generate random PIN
+    const newPin = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+    pinInput.value = newPin;
+    pinInput.disabled = true;
+    pinMessage.textContent = '👆 Share this code with your partner';
+    pinInputDiv.style.display = 'block';
+  } else if (pinOption === 'join') {
+    // Allow user to enter PIN
+    pinInput.value = '';
+    pinInput.disabled = false;
+    pinInput.focus();
+    pinMessage.textContent = 'Enter the code your partner created';
+    pinInputDiv.style.display = 'block';
+  } else {
+    pinInputDiv.style.display = 'none';
+  }
 }
 
 async function completeSetup() {
   const yourName = document.getElementById('yourName').value.trim();
   const partnerName = document.getElementById('partnerName').value.trim();
+  const pinOption = document.getElementById('pinOption').value;
+  const syncPin = document.getElementById('syncPin').value.trim();
 
   if (!yourName || !partnerName) {
     alert('Please enter both names');
     return;
   }
 
-  console.log(`✅ Setup complete: ${yourName} & ${partnerName}`);
+  if (!pinOption) {
+    alert('Please select how to sync');
+    return;
+  }
 
-  // Save to state
-  State.setUser(yourName, partnerName);
+  if (!syncPin || syncPin.length !== 4) {
+    alert('Please enter a valid 4-digit code');
+    return;
+  }
+
+  if (!/^\d{4}$/.test(syncPin)) {
+    alert('Code must be 4 digits only');
+    return;
+  }
+
+  console.log(`✅ Setup complete: ${yourName} & ${partnerName} with PIN: ${syncPin}`);
+
+  // Save user data
+  State.setUser(yourName, partnerName, syncPin);
 
   // Initialize users in Google Sheet
   console.log('📝 Saving user data to Google Sheet...');
@@ -178,6 +237,7 @@ async function completeSetup() {
   loadAllData();
   goToPage('myTasks');
 }
+
 // ============================================================================
 // MAIN APP DISPLAY
 // ============================================================================
@@ -190,18 +250,19 @@ function showMainApp() {
 }
 
 function updateUI() {
-  // Update header
   document.getElementById('userEmoji').textContent = State.user.id === 'user1' ? '👨' : '👩';
   
-  // Update nav labels
+  const assignToPartnerOption = document.getElementById('assignToPartnerOption');
+  if (assignToPartnerOption) {
+    assignToPartnerOption.textContent = `${State.user.partnerName}`;
+  }
+
   document.getElementById('assignedToPartnerTitle').textContent = `Assigned to ${State.user.partnerName}`;
-  document.getElementById('assignToPartnerOption').textContent = State.user.partnerName;
-  document.getElementById('assignToMeOption').textContent = 'Me';
   document.getElementById('navAssignedLabel').textContent = State.user.partnerName.substring(0, 8);
 
-  // Update settings
   document.getElementById('settingYourName').textContent = State.user.name;
   document.getElementById('settingPartnerName').textContent = State.user.partnerName;
+  document.getElementById('settingSyncPin').textContent = State.user.syncPin;
   document.getElementById('assignedToLabel').textContent = `Waiting for ${State.user.partnerName}`;
 }
 
@@ -250,15 +311,12 @@ const Pages = {
 };
 
 function goToPage(page) {
-  // Hide all pages
   Object.values(Pages).forEach(id => {
     document.getElementById(id).style.display = 'none';
   });
 
-  // Show selected page
   document.getElementById(Pages[page]).style.display = 'block';
 
-  // Update nav active state
   document.querySelectorAll('.nav-tab').forEach(btn => {
     btn.classList.remove('active');
     if (btn.dataset.page === page) {
@@ -268,7 +326,6 @@ function goToPage(page) {
 
   State.currentPage = page;
 
-  // Load page data
   if (page === 'home') {
     loadHomePage();
   } else if (page === 'myTasks') {
@@ -521,7 +578,7 @@ function closeCreateTaskModal() {
 async function createTask() {
   const title = document.getElementById('taskTitle').value.trim();
   const description = document.getElementById('taskDesc').value.trim();
-  const assignedTo = document.getElementById('taskAssignedTo').value;
+  const assignedToValue = document.getElementById('taskAssignedTo').value;
   const category = document.getElementById('taskCategory').value || 'Together';
   const priority = document.getElementById('taskPriority').value;
   const dueDate = document.getElementById('taskDueDate').value;
@@ -532,14 +589,18 @@ async function createTask() {
     return;
   }
 
-  if (!assignedTo) {
+  if (!assignedToValue) {
     alert('Please select who this is for');
     return;
   }
 
-  const assignedToId = assignedTo === 'me' ? State.user.id : State.user.partnerId;
+  const assignedToId = assignedToValue === 'me' ? State.user.id : State.user.partnerId;
 
-  console.log('➕ Creating task...');
+  console.log('➕ Creating task...', {
+    title,
+    assignedToId,
+    createdBy: State.user.id
+  });
 
   const result = await apiCall('createTask', {
     Title: title,
@@ -566,7 +627,8 @@ async function createTask() {
     updateStats();
     console.log('✅ Task created successfully!');
   } else {
-    alert('❌ Failed to create task: ' + result.error);
+    console.error('❌ Failed to create task:', result.error);
+    alert('❌ Failed to create task: ' + (result.error || 'Unknown error'));
   }
 }
 
