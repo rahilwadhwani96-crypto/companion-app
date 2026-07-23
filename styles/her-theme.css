@@ -1,0 +1,244 @@
+/**
+ * Her Theme - Warm Playful
+ * Peach, Pink, Lavender, Hearts
+ */
+
+body.theme-her {
+  /* Primary Colors */
+  --color-primary: #f4a0a0;
+  --color-primary-light: #f5b5b5;
+  --color-primary-dark: #e88b8b;
+  
+  /* Surface */
+  --color-surface-default: #fdf8f6;
+  --color-surface-elevated: #f9f0ed;
+  --color-surface-elevated-2: #f5e7e2;
+  
+  /* Text */
+  --color-text-primary: #5d3c3c;
+  --color-text-secondary: #8b6b6b;
+  --color-text-tertiary: #b39a9a;
+  
+  /* Accents */
+  --color-accent-pink: #fb7185;
+  --color-accent-rose: #f472b6;
+  --color-accent-purple: #d8bfd8;
+  --color-accent-peach: #f5d5c0;
+  
+  /* Borders */
+  --color-border-light: rgba(244, 160, 160, 0.15);
+  --color-border-medium: rgba(244, 160, 160, 0.25);
+  
+  /* Semantic */
+  --color-success: #6ee7b7;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #f5d5c0 0%, #f4a0a0 100%);
+  --gradient-accent: linear-gradient(135deg, #fb7185 0%, #f472b6 100%);
+  --gradient-glow: linear-gradient(135deg, rgba(251, 113, 133, 0.15) 0%, rgba(244, 112, 156, 0.15) 100%);
+  
+  /* Shadows - Soft */
+  --shadow-sm: 0 1px 3px rgba(244, 160, 160, 0.1);
+  --shadow-base: 0 4px 12px rgba(244, 160, 160, 0.15);
+  --shadow-lg: 0 12px 32px rgba(244, 160, 160, 0.2);
+  --shadow-glow: 0 0 20px rgba(251, 113, 133, 0.1);
+}
+
+/* Soft Blur Effect */
+body.theme-her .modal,
+body.theme-her .profile-menu {
+  background: rgba(249, 240, 237, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(244, 160, 160, 0.2);
+}
+
+body.theme-her .bottom-nav {
+  background: rgba(253, 248, 246, 0.75);
+  backdrop-filter: blur(15px) saturate(150%);
+  -webkit-backdrop-filter: blur(15px) saturate(150%);
+  border-top: 1px solid rgba(244, 160, 160, 0.15);
+}
+
+/* Card Styles */
+body.theme-her .card {
+  background: rgba(249, 240, 237, 0.7);
+  border: 1px solid var(--color-border-light);
+  box-shadow: 0 2px 8px rgba(244, 160, 160, 0.1);
+  transition: all var(--duration-normal) var(--easing-out);
+}
+
+body.theme-her .card:hover {
+  background: rgba(245, 231, 226, 0.9);
+  border-color: var(--color-accent-pink);
+  box-shadow: 0 0 20px rgba(251, 113, 133, 0.15);
+}
+
+/* Buttons */
+body.theme-her .btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(244, 160, 160, 0.25);
+}
+
+body.theme-her .btn-primary:hover {
+  box-shadow: 0 8px 20px rgba(244, 160, 160, 0.35);
+  transform: translateY(-2px);
+}
+
+body.theme-her .btn-secondary {
+  background: rgba(244, 160, 160, 0.1);
+  border: 1.5px solid var(--color-accent-peach);
+  color: var(--color-accent-rose);
+}
+
+body.theme-her .btn-secondary:hover {
+  background: rgba(244, 160, 160, 0.2);
+}
+
+/* Inputs */
+body.theme-her input,
+body.theme-her textarea,
+body.theme-her select {
+  background: rgba(255, 245, 242, 0.7);
+  border: 1.5px solid var(--color-border-light);
+  color: var(--color-text-primary);
+}
+
+body.theme-her input::placeholder,
+body.theme-her textarea::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+body.theme-her input:focus,
+body.theme-her textarea:focus,
+body.theme-her select:focus {
+  border-color: var(--color-accent-pink);
+  box-shadow: 0 0 12px rgba(251, 113, 133, 0.2);
+  background: rgba(255, 250, 248, 0.9);
+}
+
+/* Task Cards */
+body.theme-her .task-card {
+  background: rgba(255, 245, 242, 0.6);
+  border: 1px solid rgba(244, 160, 160, 0.15);
+}
+
+body.theme-her .task-card:hover {
+  border-color: var(--color-accent-rose);
+  background: rgba(255, 250, 248, 0.8);
+  box-shadow: 0 4px 12px rgba(244, 160, 160, 0.15);
+}
+
+/* Nav Active State with Heart Animation */
+body.theme-her .nav-tab.active {
+  color: var(--color-accent-rose);
+  animation: heart-beat 1.5s ease-in-out infinite;
+}
+
+@keyframes heart-beat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.1);
+  }
+  50% {
+    transform: scale(1);
+  }
+}
+
+/* Floating Hearts Background */
+body.theme-her {
+  background: linear-gradient(135deg, #fdf8f6 0%, #f9f0ed 50%, #fdf8f6 100%);
+  background-attachment: fixed;
+}
+
+@keyframes float-heart {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(5deg);
+  }
+}
+
+body.theme-her .nav-tab.active::before {
+  content: '💕';
+  position: absolute;
+  animation: float-heart 2s ease-in-out infinite;
+  top: -20px;
+  font-size: 12px;
+}
+
+/* Badges */
+body.theme-her .badge {
+  background: var(--gradient-primary);
+  box-shadow: 0 2px 8px rgba(244, 160, 160, 0.2);
+  color: white;
+}
+
+/* Smooth Rounded Corners */
+body.theme-her {
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+}
+
+body.theme-her .card,
+body.theme-her .task-card,
+body.theme-her .modal {
+  border-radius: 16px;
+}
+
+/* Gradient Text */
+body.theme-her .gradient-text {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Header Styling */
+body.theme-her .header {
+  background: linear-gradient(135deg, rgba(253, 248, 246, 0.95) 0%, rgba(249, 240, 237, 0.9) 100%);
+  border-bottom: 1px solid var(--color-border-medium);
+  box-shadow: 0 2px 8px rgba(244, 160, 160, 0.1);
+}
+
+body.theme-her .header h1 {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+/* Smooth Transitions */
+body.theme-her * {
+  transition: color var(--duration-normal) var(--easing-out),
+              background-color var(--duration-normal) var(--easing-out),
+              border-color var(--duration-normal) var(--easing-out);
+}
+
+body.theme-her button {
+  transition: all var(--duration-normal) var(--easing-spring);
+}
+
+/* Sparkle Dots */
+body.theme-her .card::before {
+  content: '✨';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity var(--duration-normal);
+  pointer-events: none;
+}
+
+body.theme-her .card:hover::before {
+  opacity: 0.6;
+}
