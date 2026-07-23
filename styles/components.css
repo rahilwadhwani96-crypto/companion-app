@@ -95,6 +95,7 @@ select {
   transition: all var(--duration-fast) var(--easing-out);
   -webkit-appearance: none;
   appearance: none;
+  font-family: inherit;
 }
 
 input::placeholder,
@@ -113,7 +114,6 @@ select:focus {
 textarea {
   resize: vertical;
   min-height: 100px;
-  font-family: inherit;
 }
 
 /* Form Group */
@@ -344,6 +344,8 @@ label {
   gap: 8px;
   margin-bottom: 16px;
   padding: 0 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .filter-btn {
@@ -359,6 +361,7 @@ label {
   min-width: auto;
   height: auto;
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .filter-btn:active {
@@ -376,14 +379,19 @@ label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  gap: 12px;
+  padding: 12px 16px;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .page-header h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 20px;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Home Section */
@@ -424,4 +432,18 @@ label {
 /* Tasks List */
 .tasks-list {
   padding: 0 16px;
+}
+
+/* Animations for smooth transitions */
+.page {
+  animation: fadeIn 200ms ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
