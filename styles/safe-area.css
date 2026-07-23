@@ -1,11 +1,12 @@
 /**
  * Safe Area Handling (iPhone Notch, Home Indicator)
+ * Optimized for compact layout
  */
 
 body {
-  padding-top: max(16px, env(safe-area-inset-top));
-  padding-left: max(16px, env(safe-area-inset-left));
-  padding-right: max(16px, env(safe-area-inset-right));
+  padding-top: max(12px, env(safe-area-inset-top));
+  padding-left: 0;
+  padding-right: 0;
   padding-bottom: 0;
 }
 
@@ -22,20 +23,18 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(73px + env(safe-area-inset-bottom) + 16px);
-  padding-left: max(16px, env(safe-area-inset-left));
-  padding-right: max(16px, env(safe-area-inset-right));
+  padding-bottom: calc(65px + env(safe-area-inset-bottom));
 }
 
 .header {
   flex-shrink: 0;
-  padding: max(12px, env(safe-area-inset-top)) 16px 12px 16px;
+  padding: max(8px, env(safe-area-inset-top)) 12px 8px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: calc(56px + env(safe-area-inset-top));
+  min-height: calc(48px + env(safe-area-inset-top));
   border-bottom: 1px solid var(--color-border-light);
-  gap: 12px;
+  gap: 8px;
 }
 
 .header-left,
@@ -49,12 +48,13 @@ body {
   flex: 1;
   text-align: center;
   margin: 0;
-  font-size: 24px;
+  font-size: 22px;
+  line-height: 1;
 }
 
 .profile-btn {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -62,10 +62,10 @@ body {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 24px;
+  font-size: 22px;
   padding: 0;
-  min-width: 44px;
-  transition: all 150ms ease-out;
+  min-width: 40px;
+  transition: all 100ms ease-out;
 }
 
 .profile-btn:active {
@@ -74,8 +74,8 @@ body {
 }
 
 .theme-toggle {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -83,10 +83,10 @@ body {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 20px;
+  font-size: 18px;
   padding: 0;
-  min-width: 44px;
-  transition: all 150ms ease-out;
+  min-width: 40px;
+  transition: all 100ms ease-out;
 }
 
 .theme-toggle:active {
@@ -96,27 +96,28 @@ body {
 
 .profile-menu {
   position: absolute;
-  top: calc(56px + env(safe-area-inset-top));
-  left: 16px;
-  right: 16px;
+  top: calc(48px + env(safe-area-inset-top));
+  left: 12px;
+  right: auto;
   background: var(--color-surface-elevated);
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   z-index: 1000;
-  padding: 8px 0;
+  padding: 6px 0;
   border: 1px solid var(--color-border-light);
+  min-width: 160px;
 }
 
 .menu-item {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 14px;
   background: transparent;
   border: none;
   text-align: left;
   cursor: pointer;
   color: var(--color-text-primary);
-  font-size: 16px;
-  transition: all 150ms ease-out;
+  font-size: 14px;
+  transition: all 100ms ease-out;
 }
 
 .menu-item:active {
@@ -125,11 +126,11 @@ body {
 
 .menu-item.close {
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .menu-item hr {
-  margin: 0;
+  margin: 4px 0;
   border: none;
   border-top: 1px solid var(--color-border-light);
 }
@@ -139,7 +140,7 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: calc(73px + env(safe-area-inset-bottom));
+  height: calc(65px + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
@@ -150,29 +151,30 @@ body {
   border-top: 1px solid var(--color-border-light);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  gap: 2px;
-  padding-top: 8px;
+  gap: 0;
+  padding-top: 6px;
 }
 
 .nav-tab {
   flex: 1;
   min-width: 50px;
-  max-width: 75px;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 11px;
   gap: 2px;
-  padding: 6px 4px;
+  padding: 4px 0;
   cursor: pointer;
   border: none;
   background: transparent;
   color: var(--color-text-secondary);
-  border-radius: 8px;
-  transition: all 200ms ease-out;
+  border-radius: 6px;
+  transition: all 100ms ease-out;
   height: auto;
   min-height: auto;
+  margin: 0 2px;
 }
 
 .nav-tab:active {
@@ -184,18 +186,18 @@ body {
 }
 
 .nav-icon {
-  font-size: 24px;
+  font-size: 22px;
   display: block;
   line-height: 1;
 }
 
 .nav-label {
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 65px;
+  max-width: 70px;
   font-weight: 500;
   width: 100%;
 }
@@ -205,7 +207,7 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  max-height: 90vh;
+  max-height: 85vh;
   border-radius: 20px 20px 0 0;
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
@@ -227,20 +229,21 @@ body {
 /* Landscape Mode */
 @media (orientation: landscape) {
   .header {
-    min-height: 48px;
+    min-height: 44px;
+    padding: max(6px, env(safe-area-inset-top)) 12px 6px 12px;
   }
 
   .page-container {
-    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+    padding-bottom: calc(55px + env(safe-area-inset-bottom));
   }
 
   .bottom-nav {
-    height: calc(60px + env(safe-area-inset-bottom));
+    height: calc(55px + env(safe-area-inset-bottom));
     padding-top: 4px;
   }
 
   .nav-tab {
-    max-width: 80px;
+    margin: 0 1px;
   }
 
   .nav-label {
@@ -250,44 +253,60 @@ body {
   .nav-icon {
     font-size: 20px;
   }
+
+  .header-title {
+    font-size: 20px;
+  }
 }
 
-/* Small Phones - Extra Responsive */
-@media (max-width: 360px) {
-  .bottom-nav {
-    gap: 0px;
+/* Small Phones (320px) */
+@media (max-width: 320px) {
+  .header {
+    padding: max(8px, env(safe-area-inset-top)) 10px 8px 10px;
+  }
+
+  .header-title {
+    font-size: 20px;
+  }
+
+  .profile-btn,
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
   }
 
   .nav-tab {
-    max-width: 60px;
-    padding: 4px 2px;
+    margin: 0 1px;
   }
 
   .nav-icon {
-    font-size: 22px;
+    font-size: 20px;
+  }
+
+  .nav-label {
+    font-size: 9px;
+    max-width: 60px;
+  }
+
+  .page-container {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav {
+    height: calc(60px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Small Phones (360px) */
+@media (max-width: 360px) {
+  .nav-icon {
+    font-size: 21px;
   }
 
   .nav-label {
     font-size: 10px;
-    max-width: 50px;
-  }
-
-  .page-header {
-    padding: 12px 12px;
-  }
-
-  .page-header h2 {
-    font-size: 18px;
-  }
-
-  .page-header .btn-primary {
-    padding: 0 8px;
-    height: 36px;
-    font-size: 12px;
-  }
-
-  .header {
-    padding: max(12px, env(safe-area-inset-top)) 12px 12px 12px;
+    max-width: 65px;
   }
 
   .header-title {
@@ -295,22 +314,15 @@ body {
   }
 }
 
-/* Extra Small Phones */
-@media (max-width: 320px) {
-  .nav-tab {
-    max-width: 55px;
-  }
-
+/* Medium Phones (375px - 428px) */
+@media (min-width: 375px) {
   .nav-label {
-    font-size: 9px;
+    font-size: 11px;
+    max-width: 70px;
   }
 
   .nav-icon {
-    font-size: 20px;
-  }
-
-  .page-header h2 {
-    font-size: 16px;
+    font-size: 23px;
   }
 }
 
@@ -344,27 +356,27 @@ body {
   input,
   textarea,
   select {
-    min-height: 48px;
-  }
-
-  .nav-tab {
-    min-height: 60px;
+    min-height: 44px;
   }
 
   input::placeholder {
-    font-size: 16px; /* Prevent iOS zoom on input focus */
+    font-size: 16px;
   }
 
   .profile-btn,
   .theme-toggle {
     min-height: 44px;
   }
+
+  .action-btn {
+    min-height: 75px;
+  }
 }
 
 /* iOS Specific */
 @supports (-webkit-touch-callout: none) {
   .page-container {
-    padding-bottom: calc(73px + env(safe-area-inset-bottom) + 20px);
+    padding-bottom: calc(65px + env(safe-area-inset-bottom) + 4px);
   }
 
   .modal {
@@ -379,7 +391,11 @@ body {
   input,
   textarea,
   select {
-    font-size: 16px; /* Prevent zoom on iOS */
+    font-size: 16px;
+  }
+
+  body {
+    padding-top: max(12px, env(safe-area-inset-top));
   }
 }
 
@@ -400,7 +416,7 @@ body {
   }
 
   .nav-tab:active {
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.05);
   }
 
   .profile-btn:active,
