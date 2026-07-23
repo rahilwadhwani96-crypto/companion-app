@@ -259,38 +259,45 @@
         <main class="page-container">
           <!-- Home Page (Dashboard) -->
           <div id="homePage" class="page" style="display: none;">
-            <div class="page-header">
-              <h2>Dashboard</h2>
+            <div class="dashboard">
+              <div class="stat-grid">
+                <div class="stat-card my-tasks">
+                  <div class="stat-number" id="myTaskCount">0</div>
+                  <div class="stat-label">My Tasks</div>
+                </div>
+                <div class="stat-card partner-tasks">
+                  <div class="stat-number" id="assignedToPartnerCount">0</div>
+                  <div class="stat-label" id="partnerTaskLabel">Waiting</div>
+                </div>
+              </div>
+
+              <div class="quick-actions">
+                <button class="action-btn" onclick="goToPage('myTasks')">
+                  <span class="action-icon">📋</span>
+                  <span class="action-text">My Tasks</span>
+                </button>
+                <button class="action-btn" onclick="goToPage('assignedToPartner')">
+                  <span class="action-icon">👥</span>
+                  <span class="action-text" id="assignedActionText">Assigned</span>
+                </button>
+                <button class="action-btn" onclick="openCreateTaskModal()">
+                  <span class="action-icon">➕</span>
+                  <span class="action-text">New Task</span>
+                </button>
+              </div>
+
+              <div class="activity-section">
+                <h3>Recent Activity</h3>
+                <div id="recentActivity"></div>
+              </div>
             </div>
-
-            <section class="home-section">
-              <h2>Quick Stats</h2>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <div class="card">
-                  <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;" id="myTaskCount">0</div>
-                  <div style="font-size: 13px; color: var(--color-text-secondary);">My Open Tasks</div>
-                </div>
-                <div class="card">
-                  <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;" id="assignedToPartnerCount">0</div>
-                  <div style="font-size: 13px; color: var(--color-text-secondary);" id="assignedToLabel">Waiting for Partner</div>
-                </div>
-              </div>
-            </section>
-
-            <section class="home-section">
-              <h2>Recent Activity</h2>
-              <div id="recentActivity" class="empty-state">
-                <div class="empty-state-icon">📝</div>
-                <div class="empty-state-title">No activity yet</div>
-              </div>
-            </section>
           </div>
 
           <!-- My Tasks Page -->
           <div id="myTasksPage" class="page" style="display: none;">
-            <div class="page-header">
+            <div class="page-header compact">
               <h2>My Tasks</h2>
-              <button class="btn-primary btn-sm" onclick="openCreateTaskModal()" style="padding: 8px 12px; height: auto; font-size: 14px;">+ Add</button>
+              <button class="btn-primary btn-sm" onclick="openCreateTaskModal()">+ Add</button>
             </div>
 
             <!-- Filters -->
@@ -306,9 +313,9 @@
 
           <!-- Assigned to Partner Page -->
           <div id="assignedToPartnerPage" class="page" style="display: none;">
-            <div class="page-header">
+            <div class="page-header compact">
               <h2 id="assignedToPartnerTitle">Assigned</h2>
-              <button class="btn-primary btn-sm" onclick="openCreateTaskModal()" style="padding: 8px 12px; height: auto; font-size: 14px;">+ Add</button>
+              <button class="btn-primary btn-sm" onclick="openCreateTaskModal()">+ Add</button>
             </div>
 
             <!-- Filters -->
@@ -324,64 +331,76 @@
 
           <!-- Timeline Page -->
           <div id="timelinePage" class="page" style="display: none;">
-            <div class="page-header">
+            <div class="page-header compact">
               <h2>Timeline</h2>
             </div>
-            <div id="timeline" class="empty-state">
+            <div class="empty-state-compact">
               <div class="empty-state-icon">🕐</div>
-              <div class="empty-state-title">Timeline Coming Soon</div>
-              <p>Your milestones and memories will appear here!</p>
+              <div class="empty-state-title">Coming Soon</div>
             </div>
           </div>
 
           <!-- Notifications Page -->
           <div id="notificationsPage" class="page" style="display: none;">
-            <div class="page-header">
+            <div class="page-header compact">
               <h2>Notifications</h2>
             </div>
-            <div id="notificationsList" class="empty-state">
+            <div class="empty-state-compact">
               <div class="empty-state-icon">📬</div>
-              <div class="empty-state-title">No notifications</div>
-              <p>You're all caught up!</p>
+              <div class="empty-state-title">All caught up!</div>
             </div>
           </div>
 
           <!-- Settings Page -->
           <div id="settingsPage" class="page" style="display: none;">
-            <div class="page-header">
+            <div class="page-header compact">
               <h2>Settings</h2>
             </div>
-            <div class="settings-list">
+            <div class="settings-list compact">
               <div class="setting-item">
-                <label>Your Name</label>
-                <div id="settingYourName" style="font-size: 14px; color: var(--color-text-secondary);">-</div>
+                <div>
+                  <div class="setting-label">Your Name</div>
+                  <div id="settingYourName" class="setting-value">-</div>
+                </div>
               </div>
               <div class="setting-item">
-                <label>Partner's Name</label>
-                <div id="settingPartnerName" style="font-size: 14px; color: var(--color-text-secondary);">-</div>
+                <div>
+                  <div class="setting-label">Partner's Name</div>
+                  <div id="settingPartnerName" class="setting-value">-</div>
+                </div>
               </div>
               <div class="setting-item">
-                <label>Sync Code</label>
-                <div id="settingSyncPin" style="font-size: 14px; color: var(--color-text-secondary); font-family: monospace;">-</div>
+                <div>
+                  <div class="setting-label">Sync Code</div>
+                  <div id="settingSyncPin" class="setting-value" style="font-family: monospace;">-</div>
+                </div>
               </div>
               <hr>
-              <div class="setting-item">
-                <label>Notifications</label>
+              <label class="setting-item">
+                <div>
+                  <div class="setting-label">Notifications</div>
+                </div>
                 <input type="checkbox" id="notifToggle" checked>
-              </div>
-              <div class="setting-item">
-                <label>Sound</label>
+              </label>
+              <label class="setting-item">
+                <div>
+                  <div class="setting-label">Sound</div>
+                </div>
                 <input type="checkbox" id="soundToggle" checked>
-              </div>
+              </label>
               <hr>
-              <button class="btn-danger" onclick="resetSetup()">Switch User</button>
-              <button class="btn-danger" style="margin-top: 12px;" onclick="clearAllData()">Clear All Data</button>
+              <button class="btn-danger btn-sm full-width" onclick="resetSetup()" style="margin-bottom: 8px;">Switch User</button>
+              <button class="btn-danger btn-sm full-width" onclick="clearAllData()">Clear All Data</button>
             </div>
           </div>
         </main>
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
+          <button class="nav-tab active" onclick="goToPage('home')" data-page="home">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-label">Home</span>
+          </button>
           <button class="nav-tab" onclick="goToPage('myTasks')" data-page="myTasks">
             <span class="nav-icon">📋</span>
             <span class="nav-label">My Tasks</span>
@@ -389,10 +408,6 @@
           <button class="nav-tab" onclick="goToPage('assignedToPartner')" data-page="assignedToPartner">
             <span class="nav-icon">👥</span>
             <span class="nav-label" id="navAssignedLabel">Assigned</span>
-          </button>
-          <button class="nav-tab active" onclick="goToPage('home')" data-page="home">
-            <span class="nav-icon">💠</span>
-            <span class="nav-label">Home</span>
           </button>
           <button class="nav-tab" onclick="goToPage('timeline')" data-page="timeline">
             <span class="nav-icon">❤️</span>
@@ -414,16 +429,16 @@
           </div>
           <div class="modal-content">
             <input type="text" id="taskTitle" placeholder="Task title" class="input">
-            <textarea id="taskDesc" placeholder="Description (optional)" class="input" rows="3"></textarea>
+            <textarea id="taskDesc" placeholder="Description (optional)" class="input" rows="2"></textarea>
             
             <label style="margin-top: 8px;">Assign to:</label>
-            <select id="taskAssignedTo" class="input" required style="height: auto; padding: 10px 12px;">
+            <select id="taskAssignedTo" class="input" required>
               <option value="">Select...</option>
               <option value="me">Me</option>
               <option id="assignToPartnerOption" value="partner">Partner</option>
             </select>
 
-            <select id="taskCategory" class="input" style="height: auto; padding: 10px 12px;">
+            <select id="taskCategory" class="input">
               <option value="">Select category...</option>
               <option value="Work">🏢 Work</option>
               <option value="Home">🏠 Home</option>
@@ -432,22 +447,22 @@
               <option value="Together">💕 Together</option>
             </select>
 
-            <select id="taskPriority" class="input" style="height: auto; padding: 10px 12px;">
-              <option value="low">Low Priority</option>
-              <option value="medium" selected>Medium Priority</option>
-              <option value="high">High Priority</option>
+            <select id="taskPriority" class="input">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
             </select>
 
             <input type="date" id="taskDueDate" class="input">
 
             <label>
               <input type="checkbox" id="taskPrivate"> 
-              <span style="margin-left: 8px;">Private (locked with passcode)</span>
+              <span style="margin-left: 8px; font-size: 14px;">Private task</span>
             </label>
           </div>
           <div class="modal-footer">
             <button class="btn-secondary" onclick="closeCreateTaskModal()">Cancel</button>
-            <button class="btn-primary" onclick="createTask()">Add Task</button>
+            <button class="btn-primary" onclick="createTask()">Add</button>
           </div>
         </div>
       </div>
