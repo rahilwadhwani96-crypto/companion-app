@@ -250,6 +250,8 @@ function showMainApp() {
 }
 
 function updateUI() {
+  if (!State.user || !State.user.name) return;
+
   document.getElementById('userEmoji').textContent = State.user.id === 'user1' ? '👨' : '👩';
   
   const assignToPartnerOption = document.getElementById('assignToPartnerOption');
@@ -257,17 +259,28 @@ function updateUI() {
     assignToPartnerOption.textContent = `${State.user.partnerName}`;
   }
 
-  document.getElementById('assignedToPartnerTitle').textContent = `Assigned to ${State.user.partnerName}`;
-  document.getElementById('navAssignedLabel').textContent = State.user.partnerName.substring(0, 8);
-  document.getElementById('assignedActionText').textContent = State.user.partnerName.substring(0, 10);
-  document.getElementById('partnerTaskLabel').textContent = `For ${State.user.partnerName}`;
+  const partnerNameShort = State.user.partnerName ? State.user.partnerName.substring(0, 8) : 'Partner';
+  const partnerNameAction = State.user.partnerName ? State.user.partnerName.substring(0, 10) : 'Partner';
+
+  const assignedTitle = document.getElementById('assignedToPartnerTitle');
+  if (assignedTitle) assignedTitle.textContent = `Assigned to ${State.user.partnerName}`;
+
+  const navLabel = document.getElementById('navAssignedLabel');
+  if (navLabel) navLabel.textContent = partnerNameShort;
+
+  const actionText = document.getElementById('assignedActionText');
+  if (actionText) actionText.textContent = partnerNameAction;
+
+  const taskLabel = document.getElementById('partnerTaskLabel');
+  if (taskLabel) taskLabel.textContent = `For ${State.user.partnerName}`;
 
   document.getElementById('settingYourName').textContent = State.user.name;
   document.getElementById('settingPartnerName').textContent = State.user.partnerName;
   document.getElementById('settingSyncPin').textContent = State.user.syncPin;
-  document.getElementById('assignedToLabel').textContent = `Waiting for ${State.user.partnerName}`;
-}
 
+  const assignedLabel = document.getElementById('assignedToLabel');
+  if (assignedLabel) assignedLabel.textContent = `Waiting for ${State.user.partnerName}`;
+}
 // ============================================================================
 // THEME & UI
 // ============================================================================
