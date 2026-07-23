@@ -1,6 +1,6 @@
 /**
- * Companion App - Complete Application Logic
- * With PIN-based device linking system
+ * Companion App - Complete Application Logic v2
+ * With PIN-based device linking, passcode protection, and photo attachments
  */
 
 // ============================================================================
@@ -26,7 +26,9 @@ const State = {
   currentPage: 'home',
   tasks: [],
   filterStatus: 'all',
-  filterContext: 'myTasks',
+  filterContext: 'home',
+  selectedTaskId: null,
+  pendingPasscodeTaskId: null,
 
   init() {
     const saved = localStorage.getItem('companion-user');
@@ -86,6 +88,10 @@ const State = {
     this.tasks = this.tasks.filter(t => t.TaskID !== taskId);
   },
 
+  getTask(taskId) {
+    return this.tasks.find(t => t.TaskID === taskId);
+  },
+
   getMyTasks(status = 'all') {
     let filtered = this.tasks.filter(t => t.AssignedTo === this.user.id);
     if (status === 'open') filtered = filtered.filter(t => t.Status !== 'completed');
@@ -95,6 +101,13 @@ const State = {
 
   getAssignedToPartner(status = 'all') {
     let filtered = this.tasks.filter(t => t.CreatedBy === this.user.id && t.AssignedTo !== this.user.id);
+    if (status === 'open') filtered = filtered.filter(t => t.Status !== 'completed');
+    if (status === 'completed') filtered = filtered.filter(t => t.Status === 'completed');
+    return filtered;
+  },
+
+  getAllTasks(status = 'all') {
+    let filtered = this.tasks;
     if (status === 'open') filtered = filtered.filter(t => t.Status !== 'completed');
     if (status === 'completed') filtered = filtered.filter(t => t.Status === 'completed');
     return filtered;
@@ -253,7 +266,6 @@ function updateUI() {
   }
 
   const partnerNameShort = State.user.partnerName ? State.user.partnerName.substring(0, 8) : 'Partner';
-  const partnerNameAction = State.user.partnerName ? State.user.partnerName.substring(0, 10) : 'Partner';
 
   const assignedTitle = document.getElementById('assignedToPartnerTitle');
   if (assignedTitle) assignedTitle.textContent = `Assigned to ${State.user.partnerName}`;
@@ -261,18 +273,9 @@ function updateUI() {
   const navLabel = document.getElementById('navAssignedLabel');
   if (navLabel) navLabel.textContent = partnerNameShort;
 
-  const actionText = document.getElementById('assignedActionText');
-  if (actionText) actionText.textContent = partnerNameAction;
-
-  const taskLabel = document.getElementById('partnerTaskLabel');
-  if (taskLabel) taskLabel.textContent = `For ${State.user.partnerName}`;
-
   document.getElementById('settingYourName').textContent = State.user.name;
   document.getElementById('settingPartnerName').textContent = State.user.partnerName;
   document.getElementById('settingSyncPin').textContent = State.user.syncPin;
-
-  const assignedLabel = document.getElementById('assignedToLabel');
-  if (assignedLabel) assignedLabel.textContent = `Waiting for ${State.user.partnerName}`;
 }
 
 // ============================================================================
@@ -315,7 +318,6 @@ const Pages = {
   myTasks: 'myTasksPage',
   assignedToPartner: 'assignedToPartnerPage',
   timeline: 'timelinePage',
-  notifications: 'notificationsPage',
   settings: 'settingsPage'
 };
 
@@ -387,49 +389,55 @@ async function loadAllData() {
   } else {
     State.setTasks([]);
   }
-
-  updateStats();
-}
-
-function updateStats() {
-  const myTasks = State.getMyTasks('open');
-  const assignedTasks = State.getAssignedToPartner('open');
-
-  document.getElementById('myTaskCount').textContent = myTasks.length;
-  document.getElementById('assignedToPartnerCount').textContent = assignedTasks.length;
 }
 
 // ============================================================================
-// HOME PAGE (DASHBOARD)
+// HOME PAGE (All Tasks)
 // ============================================================================
 
 function loadHomePage() {
   console.log('🏠 Loading home page...');
-  updateStats();
-  
-  const myCompletedToday = State.tasks.filter(t => 
-    t.AssignedTo === State.user.id && 
-    t.Status === 'completed'
-  ).length;
+  State.filterContext = 'home';
+  State.filterStatus = 'all';
+  renderHomeTasksList();
+  updateFilterButtons('all');
+}
 
-  const partnerCompletedToday = State.tasks.filter(t => 
-    t.AssignedTo === State.user.partnerId && 
-    t.Status === 'completed'
-  ).length;
+function filterHome(type) {
+  if (type === 'all') {
+    State.filterStatus = 'all';
+  } else if (type === 'myTasks') {
+    State.filterContext = 'homeMyTasks';
+  } else if (type === 'assigned') {
+    State.filterContext = 'homeAssigned';
+  }
+  renderHomeTasksList();
+  updateFilterButtons(type);
+}
 
-  let recentHtml = '';
-  if (myCompletedToday > 0 || partnerCompletedToday > 0) {
-    recentHtml = `
-      <div style="display: flex; flex-direction: column; gap: 6px;">
-        ${myCompletedToday > 0 ? `<div style="font-size: 13px;">✅ You completed ${myCompletedToday} task${myCompletedToday > 1 ? 's' : ''}</div>` : ''}
-        ${partnerCompletedToday > 0 ? `<div style="font-size: 13px;">✅ ${State.user.partnerName} completed ${partnerCompletedToday} task${partnerCompletedToday > 1 ? 's' : ''}</div>` : ''}
-      </div>
-    `;
+function renderHomeTasksList() {
+  let tasks = [];
+
+  if (State.filterContext === 'homeMyTasks') {
+    tasks = State.getMyTasks(State.filterStatus);
+  } else if (State.filterContext === 'homeAssigned') {
+    tasks = State.getAssignedToPartner(State.filterStatus);
   } else {
-    recentHtml = '<div style="font-size: 13px; color: var(--color-text-tertiary);">No activity yet</div>';
+    tasks = State.getAllTasks(State.filterStatus);
   }
 
-  document.getElementById('recentActivity').innerHTML = recentHtml;
+  if (tasks.length === 0) {
+    document.getElementById('homeTasksList').innerHTML = `
+      <div class="empty-state-compact">
+        <div class="empty-state-icon">✨</div>
+        <div class="empty-state-title">No tasks</div>
+      </div>
+    `;
+    return;
+  }
+
+  const html = tasks.map(task => renderTaskCard(task)).join('');
+  document.getElementById('homeTasksList').innerHTML = html;
 }
 
 // ============================================================================
@@ -457,36 +465,13 @@ function renderMyTasks() {
     document.getElementById('myTasksList').innerHTML = `
       <div class="empty-state-compact">
         <div class="empty-state-icon">✨</div>
-        <div class="empty-state-title">No tasks yet</div>
+        <div class="empty-state-title">No tasks</div>
       </div>
     `;
     return;
   }
 
-  const html = tasks.map(task => `
-    <div class="task-card animate-slide-in-up">
-      <input
-        type="checkbox"
-        class="task-checkbox"
-        ${task.Status === 'completed' ? 'checked' : ''}
-        onchange="completeTask('${task.TaskID}')"
-      >
-      <div class="task-info">
-        <div class="task-title" style="${task.Status === 'completed' ? 'text-decoration: line-through; opacity: 0.6;' : ''}">
-          ${escapeHtml(task.Title)}
-        </div>
-        <div class="task-meta">
-          ${task.DueDate ? `📅 ${task.DueDate}` : ''}
-          ${task.Priority ? `${task.Priority}` : ''}
-          ${task.Category ? `${task.Category}` : ''}
-        </div>
-      </div>
-      <div class="task-actions">
-        <button class="task-action-btn" onclick="deleteTask('${task.TaskID}')" title="Delete">🗑️</button>
-      </div>
-    </div>
-  `).join('');
-
+  const html = tasks.map(task => renderTaskCard(task)).join('');
   document.getElementById('myTasksList').innerHTML = html;
 }
 
@@ -515,51 +500,219 @@ function renderAssignedTasks() {
     document.getElementById('assignedTasksList').innerHTML = `
       <div class="empty-state-compact">
         <div class="empty-state-icon">🎯</div>
-        <div class="empty-state-title">No tasks assigned yet</div>
+        <div class="empty-state-title">No tasks assigned</div>
       </div>
     `;
     return;
   }
 
-  const html = tasks.map(task => {
-    const statusEmoji = task.Status === 'completed' ? '✅' : '⏳';
-    return `
-    <div class="task-card animate-slide-in-up">
-      <div style="font-size: 18px; margin-right: 8px; min-width: 18px; flex-shrink: 0;">${statusEmoji}</div>
+  const html = tasks.map(task => renderTaskCard(task)).join('');
+  document.getElementById('assignedTasksList').innerHTML = html;
+}
+
+// ============================================================================
+// TASK CARD RENDERING
+// ============================================================================
+
+function renderTaskCard(task) {
+  const statusEmoji = task.Status === 'completed' ? '✅' : '⏳';
+  const lockEmoji = task.IsPrivate === 'TRUE' ? '🔒 ' : '';
+
+  return `
+    <div class="task-card" onclick="openTaskDetails('${task.TaskID}')">
+      <div style="font-size: 18px; margin-right: 8px; flex-shrink: 0;">${statusEmoji}</div>
       <div class="task-info">
         <div class="task-title" style="${task.Status === 'completed' ? 'text-decoration: line-through; opacity: 0.6;' : ''}">
-          ${escapeHtml(task.Title)}
+          ${lockEmoji}${escapeHtml(task.Title)}
         </div>
         <div class="task-meta">
           ${task.DueDate ? `📅 ${task.DueDate}` : ''}
-          ${task.Priority ? `${task.Priority}` : ''}
-          ${task.Category ? `${task.Category}` : ''}
+          ${task.Priority ? `• ${task.Priority}` : ''}
+          ${task.Category ? `• ${task.Category}` : ''}
         </div>
-      </div>
-      <div class="task-actions">
-        <button class="task-action-btn" onclick="deleteTask('${task.TaskID}')" title="Delete">🗑️</button>
       </div>
     </div>
   `;
-  }).join('');
-
-  document.getElementById('assignedTasksList').innerHTML = html;
 }
 
 function updateFilterButtons(active) {
   document.querySelectorAll('.filter-btn').forEach((btn, idx) => {
     btn.classList.remove('active');
+    const dataType = btn.getAttribute('data-type') || btn.textContent.trim();
+    
     if ((active === 'all' && idx === 0) ||
         (active === 'open' && idx === 1) ||
-        (active === 'completed' && idx === 2)) {
+        (active === 'completed' && idx === 2) ||
+        (active === 'myTasks' && dataType.includes('My')) ||
+        (active === 'assigned' && dataType.includes('Assigned'))) {
       btn.classList.add('active');
     }
   });
 }
 
 // ============================================================================
+// TASK DETAILS MODAL
+// ============================================================================
+
+function openTaskDetails(taskId) {
+  const task = State.getTask(taskId);
+  if (!task) return;
+
+  State.selectedTaskId = taskId;
+
+  // Check if private
+  if (task.IsPrivate === 'TRUE') {
+    State.pendingPasscodeTaskId = taskId;
+    document.getElementById('passcodeModal').style.display = 'flex';
+    document.getElementById('passcodeInput').value = '';
+    setTimeout(() => document.getElementById('passcodeInput').focus(), 100);
+    return;
+  }
+
+  showTaskDetails(task);
+}
+
+function showTaskDetails(task) {
+  document.getElementById('detailTaskTitle').textContent = escapeHtml(task.Title);
+
+  const detailBtn = document.getElementById('detailCompleteBtn');
+  detailBtn.textContent = task.Status === 'completed' ? 'Mark Incomplete' : 'Mark Complete';
+
+  let html = `
+    <div class="task-detail-section">
+      <h3>Description</h3>
+      <p>${escapeHtml(task.Description) || 'No description'}</p>
+    </div>
+
+    <div class="task-detail-section">
+      <h3>Details</h3>
+      <div class="detail-row">
+        <span class="detail-label">Assigned to:</span>
+        <span class="detail-value">${task.AssignedTo === State.user.id ? 'Me' : State.user.partnerName}</span>
+      </div>
+      ${task.Category ? `
+      <div class="detail-row">
+        <span class="detail-label">Category:</span>
+        <span class="detail-value">${escapeHtml(task.Category)}</span>
+      </div>
+      ` : ''}
+      ${task.Priority ? `
+      <div class="detail-row">
+        <span class="detail-label">Priority:</span>
+        <span class="detail-value">${escapeHtml(task.Priority)}</span>
+      </div>
+      ` : ''}
+      ${task.DueDate ? `
+      <div class="detail-row">
+        <span class="detail-label">Due Date:</span>
+        <span class="detail-value">${escapeHtml(task.DueDate)}</span>
+      </div>
+      ` : ''}
+      ${task.Status ? `
+      <div class="detail-row">
+        <span class="detail-label">Status:</span>
+        <span class="detail-value">${escapeHtml(task.Status)}</span>
+      </div>
+      ` : ''}
+    </div>
+
+    ${task.AttachmentURLs ? `
+    <div class="task-detail-section">
+      <h3>Attachments</h3>
+      <p>${escapeHtml(task.AttachmentURLs)}</p>
+    </div>
+    ` : ''}
+  `;
+
+  document.getElementById('detailTaskContent').innerHTML = html;
+  document.getElementById('taskDetailsModal').style.display = 'flex';
+}
+
+function closeTaskDetailsModal() {
+  document.getElementById('taskDetailsModal').style.display = 'none';
+  State.selectedTaskId = null;
+}
+
+function completeDetailTask() {
+  if (!State.selectedTaskId) return;
+
+  const task = State.getTask(State.selectedTaskId);
+  if (!task) return;
+
+  const newStatus = task.Status === 'completed' ? 'open' : 'completed';
+  State.updateTask(State.selectedTaskId, { Status: newStatus });
+
+  // Re-render current view
+  if (State.currentPage === 'home') {
+    renderHomeTasksList();
+  } else if (State.currentPage === 'myTasks') {
+    renderMyTasks();
+  } else if (State.currentPage === 'assignedToPartner') {
+    renderAssignedTasks();
+  }
+
+  closeTaskDetailsModal();
+}
+
+function deleteDetailTask() {
+  if (!State.selectedTaskId) return;
+  if (!confirm('Delete this task?')) return;
+
+  State.removeTask(State.selectedTaskId);
+
+  if (State.currentPage === 'home') {
+    renderHomeTasksList();
+  } else if (State.currentPage === 'myTasks') {
+    renderMyTasks();
+  } else if (State.currentPage === 'assignedToPartner') {
+    renderAssignedTasks();
+  }
+
+  closeTaskDetailsModal();
+}
+
+// ============================================================================
+// PASSCODE PROTECTION
+// ============================================================================
+
+function verifyPasscode() {
+  const passcode = document.getElementById('passcodeInput').value.trim();
+
+  if (!passcode || passcode.length !== 4) {
+    alert('Please enter a 4-digit passcode');
+    return;
+  }
+
+  const task = State.getTask(State.pendingPasscodeTaskId);
+  if (!task) return;
+
+  // Check if passcode matches (stored in AttachmentURLs field as safety measure)
+  const storedPasscode = task.AttachmentURLs ? task.AttachmentURLs.split('::')[0] : '';
+
+  if (passcode !== storedPasscode) {
+    alert('❌ Incorrect passcode');
+    document.getElementById('passcodeInput').value = '';
+    return;
+  }
+
+  closePasscodeModal();
+  showTaskDetails(task);
+}
+
+function closePasscodeModal() {
+  document.getElementById('passcodeModal').style.display = 'none';
+  document.getElementById('passcodeInput').value = '';
+  State.pendingPasscodeTaskId = null;
+}
+
+// ============================================================================
 // TASK OPERATIONS
 // ============================================================================
+
+function togglePrivateFields() {
+  const isPrivate = document.getElementById('taskPrivate').checked;
+  document.getElementById('privateFields').style.display = isPrivate ? 'block' : 'none';
+}
 
 function openCreateTaskModal() {
   document.getElementById('createTaskModal').style.display = 'flex';
@@ -577,6 +730,9 @@ function closeCreateTaskModal() {
   document.getElementById('taskPriority').value = 'medium';
   document.getElementById('taskDueDate').value = '';
   document.getElementById('taskPrivate').checked = false;
+  document.getElementById('taskPasscode').value = '';
+  document.getElementById('taskPhoto').value = '';
+  document.getElementById('privateFields').style.display = 'none';
 }
 
 async function createTask() {
@@ -587,6 +743,8 @@ async function createTask() {
   const priority = document.getElementById('taskPriority').value;
   const dueDate = document.getElementById('taskDueDate').value;
   const isPrivate = document.getElementById('taskPrivate').checked;
+  const passcode = document.getElementById('taskPasscode').value.trim();
+  const photoInput = document.getElementById('taskPhoto');
 
   if (!title) {
     alert('Please enter a task title');
@@ -598,13 +756,32 @@ async function createTask() {
     return;
   }
 
+  if (isPrivate) {
+    if (!passcode || passcode.length !== 4 || !/^\d{4}$/.test(passcode)) {
+      alert('Please enter a valid 4-digit passcode for private task');
+      return;
+    }
+  }
+
   const assignedToId = assignedToValue === 'me' ? State.user.id : State.user.partnerId;
 
-  console.log('➕ Creating task...', {
-    title,
-    assignedToId,
-    createdBy: State.user.id
-  });
+  let attachmentData = '';
+  if (photoInput.files && photoInput.files[0]) {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      attachmentData = e.target.result;
+      await submitTask(title, description, assignedToId, category, priority, dueDate, isPrivate, passcode, attachmentData);
+    };
+    reader.readAsDataURL(photoInput.files[0]);
+  } else {
+    await submitTask(title, description, assignedToId, category, priority, dueDate, isPrivate, passcode, attachmentData);
+  }
+}
+
+async function submitTask(title, description, assignedToId, category, priority, dueDate, isPrivate, passcode, attachmentData) {
+  console.log('➕ Creating task...');
+
+  const attachmentField = isPrivate ? `${passcode}::${attachmentData}` : attachmentData;
 
   const result = await apiCall('createTask', {
     Title: title,
@@ -615,60 +792,27 @@ async function createTask() {
     IsPrivate: isPrivate ? 'TRUE' : 'FALSE',
     AssignedTo: assignedToId,
     CreatedBy: State.user.id,
-    Status: 'open'
+    Status: 'open',
+    AttachmentURLs: attachmentField
   });
 
   if (result.success) {
     State.addTask(result.data);
     closeCreateTaskModal();
 
-    if (State.currentPage === 'myTasks') {
+    if (State.currentPage === 'home') {
+      renderHomeTasksList();
+    } else if (State.currentPage === 'myTasks') {
       renderMyTasks();
     } else if (State.currentPage === 'assignedToPartner') {
       renderAssignedTasks();
     }
 
-    updateStats();
     console.log('✅ Task created successfully!');
   } else {
     console.error('❌ Failed to create task:', result.error);
     alert('❌ Failed to create task: ' + (result.error || 'Unknown error'));
   }
-}
-
-async function completeTask(taskId) {
-  console.log('✅ Toggling task:', taskId);
-
-  const task = State.tasks.find(t => t.TaskID === taskId);
-  if (!task) return;
-
-  const newStatus = task.Status === 'completed' ? 'open' : 'completed';
-
-  State.updateTask(taskId, { Status: newStatus });
-
-  if (State.filterContext === 'myTasks') {
-    renderMyTasks();
-  } else {
-    renderAssignedTasks();
-  }
-
-  updateStats();
-}
-
-async function deleteTask(taskId) {
-  if (!confirm('Delete this task?')) return;
-
-  console.log('🗑️ Deleting task:', taskId);
-
-  State.removeTask(taskId);
-
-  if (State.filterContext === 'myTasks') {
-    renderMyTasks();
-  } else {
-    renderAssignedTasks();
-  }
-
-  updateStats();
 }
 
 // ============================================================================
@@ -697,6 +841,7 @@ function clearAllData() {
 // ============================================================================
 
 function escapeHtml(text) {
+  if (!text) return '';
   const map = {
     '&': '&amp;',
     '<': '&lt;',
@@ -704,7 +849,7 @@ function escapeHtml(text) {
     '"': '&quot;',
     "'": '&#039;'
   };
-  return text.replace(/[&<>"']/g, m => map[m]);
+  return String(text).replace(/[&<>"']/g, m => map[m]);
 }
 
 // ============================================================================
@@ -714,6 +859,8 @@ function escapeHtml(text) {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeCreateTaskModal();
+    closeTaskDetailsModal();
+    closePasscodeModal();
     closeProfileMenu();
   }
 
