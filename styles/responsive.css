@@ -1,0 +1,164 @@
+/**
+ * Responsive Design
+ */
+
+/* Tablet (768px) */
+@media (min-width: 768px) {
+  :root {
+    --page-max-width: 600px;
+  }
+
+  .grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Large Tablet (1024px) */
+@media (min-width: 1024px) {
+  :root {
+    --page-max-width: 800px;
+  }
+}
+
+/* Landscape Mode */
+@media (orientation: landscape) {
+  .header {
+    min-height: 48px;
+  }
+
+  .page-container {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom) + 16px);
+  }
+
+  .bottom-nav {
+    height: calc(60px + env(safe-area-inset-bottom));
+  }
+
+  .nav-label {
+    display: none;
+  }
+
+  .nav-icon {
+    font-size: 20px;
+  }
+
+  button,
+  .btn {
+    height: 44px;
+    padding: 0 var(--space-md);
+  }
+
+  input,
+  textarea,
+  select {
+    padding: 10px 12px;
+  }
+}
+
+/* Small Phones (< 360px) */
+@media (max-width: 359px) {
+  :root {
+    --space-md: 12px;
+    --space-lg: 16px;
+    --font-size-base: 14px;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
+
+  button,
+  .btn {
+    height: 44px;
+    padding: 0 var(--space-md);
+  }
+
+  .modal-footer {
+    flex-direction: column;
+  }
+
+  .modal-footer button {
+    width: 100%;
+  }
+}
+
+/* Touch Device Adjustments */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  .btn,
+  input,
+  textarea,
+  select {
+    min-height: 48px;
+  }
+
+  .nav-tab {
+    min-height: 44px;
+  }
+
+  input::placeholder {
+    font-size: 16px; /* Prevent iOS zoom on input focus */
+  }
+}
+
+/* Dark Mode (if device prefers) */
+@media (prefers-color-scheme: dark) {
+  /* Already dark by default */
+}
+
+/* Light Mode Override */
+@media (prefers-color-scheme: light) {
+  body {
+    --color-surface-default: #ffffff;
+    --color-surface-elevated: #f8f8f8;
+    --color-text-primary: #1a1a1a;
+    --color-text-secondary: #666;
+    --color-text-tertiary: #999;
+    --color-border-light: rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: more) {
+  button,
+  .btn,
+  input,
+  textarea,
+  select {
+    border-width: 2px;
+  }
+
+  .card {
+    border-width: 2px;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .header,
+  .bottom-nav {
+    display: none;
+  }
+
+  .page-container {
+    padding-bottom: 0;
+  }
+
+  body {
+    background: white;
+    color: black;
+  }
+}
