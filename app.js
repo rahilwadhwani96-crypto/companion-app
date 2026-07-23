@@ -7,7 +7,7 @@
 // CONFIGURATION
 // ============================================================================
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbyFo77lo05o0q-cL7Cwign6kH0LpI2Dpq08UCWw-idvbRxFelRejbRYBjGxWdmxtQyZkg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwJJeWH4dgS6pJep1ieufBQ3bcEkLGdsH_BmGpCxH9Q_S3ckxg6V8soQTeSE2T0oIjulg/exec';
 
 // ============================================================================
 // STATE MANAGEMENT
