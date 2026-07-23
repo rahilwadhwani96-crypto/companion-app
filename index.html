@@ -294,10 +294,10 @@
           </div>
 
           <!-- My Tasks Page -->
+         <!-- My Tasks Page -->
           <div id="myTasksPage" class="page" style="display: none;">
             <div class="page-header compact">
               <h2>My Tasks</h2>
-              <button class="btn-primary btn-sm" onclick="openCreateTaskModal()">+ Add</button>
             </div>
 
             <!-- Filters -->
@@ -315,7 +315,6 @@
           <div id="assignedToPartnerPage" class="page" style="display: none;">
             <div class="page-header compact">
               <h2 id="assignedToPartnerTitle">Assigned</h2>
-              <button class="btn-primary btn-sm" onclick="openCreateTaskModal()">+ Add</button>
             </div>
 
             <!-- Filters -->
@@ -418,6 +417,11 @@
             <span class="nav-label">Settings</span>
           </button>
         </nav>
+
+        <!-- Floating Action Button -->
+        <button id="fabAddTask" class="fab-button" onclick="openCreateTaskModal()" style="display: none;">
+          <span>➕</span>
+        </button>
       </div>
 
       <!-- Create Task Modal -->
