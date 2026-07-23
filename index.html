@@ -89,17 +89,6 @@
     .setup-form button:active {
       transform: scale(0.98);
     }
-
-    .my-tasks-empty {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--color-text-secondary);
-    }
-
-    .my-tasks-empty-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-    }
   </style>
 </head>
 <body class="theme-his">
@@ -157,7 +146,7 @@
               <span id="userEmoji">👨</span>
             </button>
           </div>
-          <h1 class="header-title" id="headerTitle">💕 Companion</h1>
+          <h1 class="header-title">💕</h1>
           <div class="header-right">
             <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
           </div>
@@ -173,26 +162,31 @@
 
         <!-- Page Container -->
         <main class="page-container">
-          <!-- Home Page -->
+          <!-- Home Page (Dashboard) -->
           <div id="homePage" class="page" style="display: none;">
-            <section class="home-section">
-              <h2>Welcome, <span id="homeUserName">User</span>! 👋</h2>
-              <div id="homeStats" style="margin-top: 16px;">
-                <!-- Stats will be inserted here -->
-              </div>
-            </section>
-            
+            <div class="page-header">
+              <h2>Dashboard</h2>
+            </div>
+
             <section class="home-section">
               <h2>Quick Stats</h2>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <div class="card">
-                  <div style="font-size: 24px; font-weight: 600;" id="myTaskCount">0</div>
-                  <div style="font-size: 12px; color: var(--color-text-secondary);">My Tasks</div>
+                  <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;" id="myTaskCount">0</div>
+                  <div style="font-size: 13px; color: var(--color-text-secondary);">My Open Tasks</div>
                 </div>
                 <div class="card">
-                  <div style="font-size: 24px; font-weight: 600;" id="assignedToPartnerCount">0</div>
-                  <div style="font-size: 12px; color: var(--color-text-secondary);" id="assignedToLabel">Assigned to Partner</div>
+                  <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;" id="assignedToPartnerCount">0</div>
+                  <div style="font-size: 13px; color: var(--color-text-secondary);" id="assignedToLabel">Waiting for Partner</div>
                 </div>
+              </div>
+            </section>
+
+            <section class="home-section">
+              <h2>Recent Activity</h2>
+              <div id="recentActivity" class="empty-state">
+                <div class="empty-state-icon">📝</div>
+                <div class="empty-state-title">No activity yet</div>
               </div>
             </section>
           </div>
@@ -201,7 +195,7 @@
           <div id="myTasksPage" class="page" style="display: none;">
             <div class="page-header">
               <h2>My Tasks</h2>
-              <button class="btn-primary" onclick="openCreateTaskModal()">+ Add Task</button>
+              <button class="btn-primary btn-sm" onclick="openCreateTaskModal()" style="padding: 8px 12px; height: auto; font-size: 14px;">+ Add</button>
             </div>
 
             <!-- Filters -->
@@ -218,8 +212,8 @@
           <!-- Assigned to Partner Page -->
           <div id="assignedToPartnerPage" class="page" style="display: none;">
             <div class="page-header">
-              <h2 id="assignedToPartnerTitle">Assigned to Partner</h2>
-              <button class="btn-primary" onclick="openCreateTaskModal()">+ Add Task</button>
+              <h2 id="assignedToPartnerTitle">Assigned</h2>
+              <button class="btn-primary btn-sm" onclick="openCreateTaskModal()" style="padding: 8px 12px; height: auto; font-size: 14px;">+ Add</button>
             </div>
 
             <!-- Filters -->
@@ -236,7 +230,7 @@
           <!-- Timeline Page -->
           <div id="timelinePage" class="page" style="display: none;">
             <div class="page-header">
-              <h2>Our Timeline</h2>
+              <h2>Timeline</h2>
             </div>
             <div id="timeline" class="empty-state">
               <div class="empty-state-icon">🕐</div>
@@ -289,10 +283,6 @@
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-          <button class="nav-tab active" onclick="goToPage('home')" data-page="home">
-            <span class="nav-icon">🏠</span>
-            <span class="nav-label">Home</span>
-          </button>
           <button class="nav-tab" onclick="goToPage('myTasks')" data-page="myTasks">
             <span class="nav-icon">📋</span>
             <span class="nav-label">My Tasks</span>
@@ -300,6 +290,10 @@
           <button class="nav-tab" onclick="goToPage('assignedToPartner')" data-page="assignedToPartner">
             <span class="nav-icon">👥</span>
             <span class="nav-label" id="navAssignedLabel">Assigned</span>
+          </button>
+          <button class="nav-tab active" onclick="goToPage('home')" data-page="home">
+            <span class="nav-icon">💠</span>
+            <span class="nav-label">Home</span>
           </button>
           <button class="nav-tab" onclick="goToPage('timeline')" data-page="timeline">
             <span class="nav-icon">❤️</span>
