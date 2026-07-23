@@ -243,7 +243,6 @@
           </div>
           <h1 class="header-title">💕</h1>
           <div class="header-right">
-            <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
           </div>
         </header>
 
@@ -336,6 +335,16 @@
                   <div class="setting-label">Sync Code</div>
                   <div id="settingSyncPin" class="setting-value" style="font-family: monospace;">-</div>
                 </div>
+              </div>
+              <hr>
+              <div class="setting-item">
+                <div>
+                  <div class="setting-label">Theme</div>
+                </div>
+                <select id="themeSelector" class="input" onchange="changeTheme(this.value)" style="width: auto; padding: 6px 12px; height: auto; font-size: 14px;">
+                  <option value="his">His (Dark Navy)</option>
+                  <option value="her">Her (Warm Peach)</option>
+                </select>
               </div>
               <hr>
               <label class="setting-item">
