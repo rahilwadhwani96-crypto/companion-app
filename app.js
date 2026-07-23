@@ -783,7 +783,16 @@ async function createTask() {
 async function submitTask(title, description, assignedToId, category, priority, dueDate, isPrivate, passcode, attachmentData) {
   console.log('➕ Creating task...');
 
-  const attachmentField = isPrivate ? `${passcode}::${attachmentData}` : attachmentData;
+  // Store passcode and attachment separately
+  let attachmentField = '';
+  if (isPrivate && passcode) {
+    // Format: "passcode::data" (without spaces)
+    attachmentField = passcode.trim() + '::' + (attachmentData || '');
+  } else if (attachmentData) {
+    attachmentField = attachmentData;
+  }
+
+  console.log('Attachment field:', attachmentField.substring(0, 50) + '...');
 
   const result = await apiCall('createTask', {
     Title: title,
@@ -816,7 +825,6 @@ async function submitTask(title, description, assignedToId, category, priority, 
     alert('❌ Failed to create task: ' + (result.error || 'Unknown error'));
   }
 }
-
 // ============================================================================
 // SETTINGS
 // ============================================================================
