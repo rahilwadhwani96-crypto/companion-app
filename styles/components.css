@@ -1,6 +1,6 @@
 /**
- * Component Styles - Redesigned Layout v2
- * Focus on task list, bottom add button, and modal details
+ * Component Styles - Complete Redesign v3
+ * Focus on task list, full screen width, removed sidebar
  */
 
 /* Buttons */
@@ -107,6 +107,7 @@ select:focus {
 
 input[type="file"] {
   padding: 8px;
+  cursor: pointer;
 }
 
 textarea {
@@ -121,7 +122,6 @@ label {
   color: var(--color-text-primary);
 }
 
-/* Page Header - Compact */
 /* Page Header - Compact */
 .page-header {
   display: flex;
@@ -139,13 +139,57 @@ label {
 
 .page-header h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
+
+/* Filters */
+.filters {
+  display: flex;
+  gap: 6px;
+  margin: 6px 16px 12px 16px;
+  padding: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-btn {
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--color-border-light);
+  border-radius: 16px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 100ms ease-out;
+  white-space: nowrap;
+  min-width: auto;
+  height: auto;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.filter-btn:active {
+  background: var(--color-surface-default);
+}
+
+.filter-btn.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+/* Tasks List */
+.tasks-list {
+  padding: 8px 16px 20px 16px;
+}
+
 /* Task Card - Clickable */
 .task-card {
   padding: 12px;
@@ -191,51 +235,12 @@ label {
   display: none;
 }
 
-/* Filters */
-.filters {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 12px;
-  padding: 0 16px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.filter-btn {
-  padding: 6px 10px;
-  background: transparent;
-  border: 1px solid var(--color-border-light);
-  border-radius: 16px;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 100ms ease-out;
-  white-space: nowrap;
-  min-width: auto;
-  height: auto;
-  font-weight: 500;
-  flex-shrink: 0;
-}
-
-.filter-btn:active {
-  background: var(--color-surface-default);
-}
-
-.filter-btn.active {
-  background: var(--color-primary);
-  color: white;
-  border-color: var(--color-primary);
-}
-
-/* Tasks List */
-.tasks-list {
-  padding: 8px 16px 20px 16px;
-}
 /* Empty State - Compact */
 .empty-state-compact {
   text-align: center;
-  padding: 40px 16px;
+  padding: 60px 16px;
   color: var(--color-text-secondary);
+  margin-top: 20px;
 }
 
 .empty-state-icon {
@@ -255,6 +260,12 @@ label {
   display: flex;
   align-items: flex-end;
   background: rgba(0, 0, 0, 0.4);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-modal-overlay);
 }
 
 .modal {
@@ -268,6 +279,7 @@ label {
   max-height: 85vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  z-index: var(--z-modal);
 }
 
 .modal.modal-details {
@@ -281,12 +293,15 @@ label {
   padding: 12px 16px;
   border-bottom: 1px solid var(--color-border-light);
   flex-shrink: 0;
+  gap: 8px;
 }
 
 .modal-header h2 {
   margin: 0;
   font-size: 18px;
   word-break: break-word;
+  flex: 1;
+  min-width: 0;
 }
 
 .modal-close {
@@ -302,6 +317,7 @@ label {
   border: none;
   padding: 0;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .modal-close:active {
@@ -367,6 +383,10 @@ label {
 
 .detail-value {
   color: var(--color-text-primary);
+  text-align: right;
+  flex: 1;
+  margin-left: 8px;
+  word-break: break-word;
 }
 
 /* Bottom Add Button */
@@ -376,7 +396,7 @@ label {
   left: 50%;
   transform: translateX(-50%);
   height: 44px;
-  padding: 0 16px;
+  padding: 0 20px;
   border-radius: 22px;
   background: linear-gradient(135deg, #f5d5c0 0%, #f4a0a0 100%);
   color: white;
@@ -408,6 +428,11 @@ label {
   border-left: 3px solid var(--color-primary);
 }
 
+#privateFields label {
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
 /* Settings List - Compact */
 .settings-list {
   padding: 12px 16px;
@@ -437,6 +462,23 @@ label {
   height: 28px;
   -webkit-appearance: switch;
   appearance: switch;
+}
+
+.setting-item label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  margin: 0;
+  cursor: pointer;
+}
+
+.setting-item label input {
+  margin: 0;
+  width: auto;
+  padding: 0;
+  border: none;
+  background: none;
 }
 
 .setting-label {
@@ -523,7 +565,7 @@ select:focus {
 @media (max-width: 360px) {
   .bottom-add-btn {
     height: 40px;
-    padding: 0 12px;
+    padding: 0 16px;
     font-size: 14px;
   }
 
@@ -533,6 +575,10 @@ select:focus {
 
   .modal-header h2 {
     font-size: 16px;
+  }
+
+  .page-header h2 {
+    font-size: 18px;
   }
 }
 
@@ -544,4 +590,23 @@ select:focus {
   .modal-content {
     max-height: 60vh;
   }
+
+  .page-header {
+    padding: 6px 16px;
+  }
+
+  .filters {
+    margin: 4px 16px 8px 16px;
+  }
+
+  .tasks-list {
+    padding: 4px 16px 15px 16px;
+  }
+}
+
+/* Z-index management */
+:root {
+  --z-nav: 40;
+  --z-modal-overlay: 100;
+  --z-modal: 101;
 }
