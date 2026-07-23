@@ -1,0 +1,88 @@
+/**
+ * Design Tokens & CSS Variables
+ * Base (theme-agnostic)
+ */
+
+:root {
+  /* Safe Area Insets */
+  --safe-area-inset-top: 0;
+  --safe-area-inset-right: 0;
+  --safe-area-inset-bottom: 0;
+  --safe-area-inset-left: 0;
+
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 28px;
+  
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Spacing (8px base) */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* Borders */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-base: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.3);
+
+  /* Animations */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --easing-out: cubic-bezier(0, 0, 0.2, 1);
+  --easing-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Layout */
+  --page-max-width: 428px;
+  --header-height: 56px;
+  --nav-height: 73px;
+  --nav-height-with-safe: calc(73px + env(safe-area-inset-bottom));
+
+  /* Z-Index Stack */
+  --z-background: 0;
+  --z-content: 10;
+  --z-modal: 1000;
+  --z-modal-overlay: 999;
+  --z-nav: 200;
+
+  /* Colors (overridden by themes) */
+  --color-surface-default: #0f1217;
+  --color-surface-elevated: #1a1f3a;
+  --color-text-primary: #f0f0f0;
+  --color-text-secondary: #a8b0c0;
+  --color-text-tertiary: #6b7280;
+  --color-primary: #4a5fa5;
+  --color-success: #4ade80;
+  --color-error: #f87171;
+  --color-border-light: rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-slow: 0ms;
+  }
+}
