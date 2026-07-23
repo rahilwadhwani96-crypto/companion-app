@@ -310,6 +310,15 @@ const Pages = {
   settings: 'settingsPage'
 };
 
+const Pages = {
+  home: 'homePage',
+  myTasks: 'myTasksPage',
+  assignedToPartner: 'assignedToPartnerPage',
+  timeline: 'timelinePage',
+  notifications: 'notificationsPage',
+  settings: 'settingsPage'
+};
+
 function goToPage(page) {
   Object.values(Pages).forEach(id => {
     document.getElementById(id).style.display = 'none';
@@ -326,6 +335,15 @@ function goToPage(page) {
 
   State.currentPage = page;
 
+  // Show FAB only on task pages
+  const fab = document.getElementById('fabAddTask');
+  if (page === 'myTasks' || page === 'assignedToPartner') {
+    fab.style.display = 'flex';
+  } else {
+    fab.style.display = 'none';
+  }
+
+  // Load page data
   if (page === 'home') {
     loadHomePage();
   } else if (page === 'myTasks') {
@@ -334,7 +352,6 @@ function goToPage(page) {
     loadAssignedToPartnerPage();
   }
 }
-
 // ============================================================================
 // API CALLS
 // ============================================================================
