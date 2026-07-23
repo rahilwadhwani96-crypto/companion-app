@@ -146,7 +146,7 @@ function showSetupWizard() {
   document.getElementById('yourName').focus();
 }
 
-function completeSetup() {
+async function completeSetup() {
   const yourName = document.getElementById('yourName').value.trim();
   const partnerName = document.getElementById('partnerName').value.trim();
 
@@ -157,12 +157,27 @@ function completeSetup() {
 
   console.log(`✅ Setup complete: ${yourName} & ${partnerName}`);
 
+  // Save to state
   State.setUser(yourName, partnerName);
+
+  // Initialize users in Google Sheet
+  console.log('📝 Saving user data to Google Sheet...');
+  
+  const initResult = await apiCall('initializeUsers', {
+    user1Name: yourName,
+    user2Name: partnerName
+  });
+
+  if (initResult.success) {
+    console.log('✅ Users saved to Google Sheet!');
+  } else {
+    console.warn('⚠️ Could not save users:', initResult.error);
+  }
+
   showMainApp();
   loadAllData();
-  goToPage('myTasks'); // Changed from 'home' to 'myTasks'
+  goToPage('myTasks');
 }
-
 // ============================================================================
 // MAIN APP DISPLAY
 // ============================================================================
