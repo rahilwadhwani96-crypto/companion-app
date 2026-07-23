@@ -689,11 +689,8 @@ function verifyPasscode() {
     return;
   }
 
-  // Get stored passcode from AttachmentURLs
-  let storedPasscode = '';
-  if (task.AttachmentURLs && task.AttachmentURLs.includes('::')) {
-    storedPasscode = task.AttachmentURLs.split('::')[0].trim();
-  }
+  // Get stored passcode from ContentHash field
+  const storedPasscode = task.ContentHash ? task.ContentHash.trim() : '';
 
   console.log('Entered:', passcode, 'Stored:', storedPasscode);
 
