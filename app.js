@@ -7,7 +7,7 @@
 // CONFIGURATION
 // ============================================================================
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbyFo77lo05o0q-cL7Cwign6kH0LpI2Dpq08UCWw-idvbRxFelRejbRYBjGxWdmxtQyZkg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwuDAd42gcX83_fHFZoj1OQmPkC1RJ1KAxNKORD6CQ2ao8ToZ2ZkFEVX7DeombC755T8w/exec';
 
 // ============================================================================
 // STATE MANAGEMENT
@@ -24,7 +24,7 @@ const State = {
 
   // App state
   currentTheme: 'his',
-  currentPage: 'home',
+  currentPage: 'myTasks', // Changed default to myTasks
   tasks: [],
   filterStatus: 'all',
   filterContext: 'myTasks', // 'myTasks' or 'assignedToPartner'
@@ -160,7 +160,7 @@ function completeSetup() {
   State.setUser(yourName, partnerName);
   showMainApp();
   loadAllData();
-  goToPage('home');
+  goToPage('myTasks'); // Changed from 'home' to 'myTasks'
 }
 
 // ============================================================================
@@ -182,13 +182,12 @@ function updateUI() {
   document.getElementById('assignedToPartnerTitle').textContent = `Assigned to ${State.user.partnerName}`;
   document.getElementById('assignToPartnerOption').textContent = State.user.partnerName;
   document.getElementById('assignToMeOption').textContent = 'Me';
-  document.getElementById('navAssignedLabel').textContent = State.user.partnerName.substring(0, 10);
+  document.getElementById('navAssignedLabel').textContent = State.user.partnerName.substring(0, 8);
 
   // Update settings
   document.getElementById('settingYourName').textContent = State.user.name;
   document.getElementById('settingPartnerName').textContent = State.user.partnerName;
-  document.getElementById('homeUserName').textContent = State.user.name;
-  document.getElementById('assignedToLabel').textContent = `Assigned to ${State.user.partnerName}`;
+  document.getElementById('assignedToLabel').textContent = `Waiting for ${State.user.partnerName}`;
 }
 
 // ============================================================================
@@ -312,20 +311,47 @@ async function loadAllData() {
 }
 
 function updateStats() {
-  const myTasks = State.getMyTasks();
-  const assignedTasks = State.getAssignedToPartner();
+  const myTasks = State.getMyTasks('open');
+  const assignedTasks = State.getAssignedToPartner('open');
 
   document.getElementById('myTaskCount').textContent = myTasks.length;
   document.getElementById('assignedToPartnerCount').textContent = assignedTasks.length;
 }
 
 // ============================================================================
-// HOME PAGE
+// HOME PAGE (DASHBOARD)
 // ============================================================================
 
 function loadHomePage() {
   console.log('🏠 Loading home page...');
   updateStats();
+  
+  const myCompletedToday = State.tasks.filter(t => 
+    t.AssignedTo === State.user.id && 
+    t.Status === 'completed'
+  ).length;
+
+  const partnerCompletedToday = State.tasks.filter(t => 
+    t.AssignedTo === State.user.partnerId && 
+    t.Status === 'completed'
+  ).length;
+
+  let recentHtml = '';
+  if (myCompletedToday > 0 || partnerCompletedToday > 0) {
+    recentHtml = `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        ${myCompletedToday > 0 ? `<div style="font-size: 14px;">✅ You completed ${myCompletedToday} task${myCompletedToday > 1 ? 's' : ''}</div>` : ''}
+        ${partnerCompletedToday > 0 ? `<div style="font-size: 14px;">✅ ${State.user.partnerName} completed ${partnerCompletedToday} task${partnerCompletedToday > 1 ? 's' : ''}</div>` : ''}
+      </div>
+    `;
+  } else {
+    recentHtml = `
+      <div class="empty-state-icon">📝</div>
+      <div class="empty-state-title">No activity yet</div>
+    `;
+  }
+
+  document.getElementById('recentActivity').innerHTML = recentHtml;
 }
 
 // ============================================================================
@@ -423,7 +449,7 @@ function renderAssignedTasks() {
     const statusEmoji = task.Status === 'completed' ? '✅' : '⏳';
     return `
     <div class="task-card animate-slide-in-up">
-      <div style="font-size: 20px; margin-right: 8px;">${statusEmoji}</div>
+      <div style="font-size: 20px; margin-right: 8px; min-width: 20px;">${statusEmoji}</div>
       <div class="task-info">
         <div class="task-title" style="${task.Status === 'completed' ? 'text-decoration: line-through; opacity: 0.6;' : ''}">
           ${escapeHtml(task.Title)}
@@ -461,7 +487,9 @@ function updateFilterButtons(active) {
 
 function openCreateTaskModal() {
   document.getElementById('createTaskModal').style.display = 'flex';
-  document.getElementById('taskTitle').focus();
+  setTimeout(() => {
+    document.getElementById('taskTitle').focus();
+  }, 100);
 }
 
 function closeCreateTaskModal() {
@@ -521,7 +549,7 @@ async function createTask() {
     }
 
     updateStats();
-    alert('✅ Task created!');
+    console.log('✅ Task created successfully!');
   } else {
     alert('❌ Failed to create task: ' + result.error);
   }
@@ -571,7 +599,7 @@ function resetSetup() {
     State.switchToPartner();
     updateTheme();
     updateUI();
-    goToPage('home');
+    goToPage('myTasks');
     loadAllData();
   }
 }
