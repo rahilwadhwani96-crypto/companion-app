@@ -105,7 +105,14 @@ const State = {
 
     this.user = newUser;
     this.currentTheme = newUser.theme;
+    this.tasks = []; // Clear tasks so they reload for new user
     localStorage.setItem('companion-user', JSON.stringify(this.user));
+    
+    console.log('🔄 Switched to user:', {
+      userId: newUser.id,
+      userName: newUser.name,
+      theme: newUser.theme
+    });
   },
 
   setTheme(theme) {
@@ -160,6 +167,217 @@ const State = {
 };
 
 // ============================================================================
+// AUTO-SYNC MECHANISM - Real-time task updates
+// ============================================================================
+
+const AutoSync = {
+  isEnabled: true,
+  syncInterval: 5000, // Sync every 5 seconds
+  lastSyncTime: 0,
+  syncing: false,
+
+  start() {
+    console.log('🔄 Auto-sync started (5 second intervals)');
+    this.interval = setInterval(() => {
+      this.sync();
+    }, this.syncInterval);
+  },
+
+  stop() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      console.log('⏸️ Auto-sync stopped');
+    }
+  },
+
+  async sync() {
+    if (this.syncing || !this.isEnabled) return;
+
+    this.syncing = true;
+    const syncIcon = document.getElementById('syncIcon');
+    const syncStatus = document.getElementById('syncStatus');
+    
+    // Show sync icon
+    if (syncIcon && syncStatus) {
+      syncStatus.style.display = 'block';
+      syncIcon.classList.add('syncing');
+    }
+
+    try {
+      const tasksResult = await apiCall('getTasks', {});
+
+      if (tasksResult.success && tasksResult.data) {
+        const oldTaskCount = State.tasks.length;
+        const newTaskCount = tasksResult.data.length;
+
+        // Check if there are new tasks or changes
+        if (newTaskCount !== oldTaskCount) {
+          console.log(`🔄 Sync found changes: ${oldTaskCount} → ${newTaskCount} tasks`);
+          State.setTasks(tasksResult.data);
+          
+          // Re-render current page
+          if (State.currentPage === 'home') {
+            renderHomeTasksList();
+          } else if (State.currentPage === 'myTasks') {
+            renderMyTasks();
+          } else if (State.currentPage === 'assignedToPartner') {
+            renderAssignedTasks();
+          }
+
+          // Show subtle sync indicator
+          this.showSyncNotification();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Sync error:', error);
+    } finally {
+      this.syncing = false;
+      this.lastSyncTime = Date.now();
+
+      // Hide sync icon after sync completes
+      if (syncIcon) {
+        syncIcon.classList.remove('syncing');
+        setTimeout(() => {
+          if (syncStatus) {
+            syncStatus.style.display = 'none';
+          }
+        }, 800);
+      }
+    }
+  },
+
+  showSyncNotification() {
+    const indicator = document.createElement('div');
+    indicator.textContent = '🔄 Synced';
+    indicator.style.cssText = `
+      position: fixed;
+      bottom: 100px;
+      right: 16px;
+      background: var(--color-primary);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      z-index: 999;
+      animation: slideInRight 300ms ease-out, slideOutRight 300ms ease-out 2700ms forwards;
+    `;
+    document.body.appendChild(indicator);
+
+    setTimeout(() => indicator.remove(), 3000);
+  }
+};
+
+// ============================================================================
+// TOUCH GESTURES - Pull to Refresh & Swipe Navigation
+// ============================================================================
+
+const TouchGestures = {
+  startY: 0,
+  startX: 0,
+  pullDistance: 0,
+  minPullDistance: 80,
+  minSwipeDistance: 50,
+  maxNavTabs: 5,
+  currentTabIndex: 0,
+
+  init() {
+    const pageContainer = document.querySelector('.page-container');
+    
+    pageContainer.addEventListener('touchstart', (e) => this.handleTouchStart(e));
+    pageContainer.addEventListener('touchmove', (e) => this.handleTouchMove(e));
+    pageContainer.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+  },
+
+  handleTouchStart(e) {
+    this.startY = e.touches[0].clientY;
+    this.startX = e.touches[0].clientX;
+    this.pullDistance = 0;
+  },
+
+  handleTouchMove(e) {
+    const currentY = e.touches[0].clientY;
+    const diffY = currentY - this.startY;
+
+    // Pull to refresh detection (only if scrolled to top)
+    const pageContainer = document.querySelector('.page-container');
+    if (pageContainer.scrollTop === 0 && diffY > 0) {
+      this.pullDistance = diffY;
+      const opacity = Math.min(this.pullDistance / this.minPullDistance, 1);
+      
+      let refreshIndicator = document.getElementById('refreshIndicator');
+      if (!refreshIndicator) {
+        refreshIndicator = document.createElement('div');
+        refreshIndicator.id = 'refreshIndicator';
+        refreshIndicator.style.cssText = `
+          position: sticky;
+          top: 0;
+          text-align: center;
+          padding: 16px;
+          color: var(--color-text-secondary);
+          font-size: 14px;
+          z-index: 50;
+          opacity: ${opacity};
+          transform: translateY(${Math.max(this.pullDistance - 30, 0)}px);
+        `;
+        pageContainer.insertBefore(refreshIndicator, pageContainer.firstChild);
+      }
+      
+      refreshIndicator.textContent = this.pullDistance > this.minPullDistance 
+        ? '↻ Release to refresh' 
+        : '↓ Pull to refresh';
+      refreshIndicator.style.opacity = opacity;
+    }
+  },
+
+  handleTouchEnd(e) {
+    const endY = e.changedTouches[0].clientY;
+    const endX = e.changedTouches[0].clientX;
+    const diffY = endY - this.startY;
+    const diffX = endX - this.startX;
+
+    // Remove refresh indicator
+    const refreshIndicator = document.getElementById('refreshIndicator');
+    if (refreshIndicator) {
+      refreshIndicator.remove();
+    }
+
+    // Pull to refresh
+    if (diffY > this.minPullDistance) {
+      console.log('🔄 Pull to refresh triggered');
+      loadAllData();
+      return;
+    }
+
+    // Swipe navigation (left/right)
+    if (Math.abs(diffX) > this.minSwipeDistance && Math.abs(diffY) < 50) {
+      this.handleSwipe(diffX);
+    }
+  },
+
+  handleSwipe(diffX) {
+    const navTabs = document.querySelectorAll('.nav-tab');
+    const currentActiveTab = document.querySelector('.nav-tab.active');
+    
+    if (!currentActiveTab) return;
+
+    const currentIndex = Array.from(navTabs).indexOf(currentActiveTab);
+    let nextIndex;
+
+    if (diffX > 0) {
+      // Swiped right - go to previous tab
+      nextIndex = currentIndex > 0 ? currentIndex - 1 : navTabs.length - 1;
+    } else {
+      // Swiped left - go to next tab
+      nextIndex = currentIndex < navTabs.length - 1 ? currentIndex + 1 : 0;
+    }
+
+    console.log('👆 Swipe detected:', diffX > 0 ? 'right' : 'left');
+    navTabs[nextIndex].click();
+  }
+};
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -183,6 +401,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       showMainApp();
       loadAllData();
+      TouchGestures.init();
+      AutoSync.start(); // Start real-time sync
     }
   }, 500);
 });
@@ -408,12 +628,26 @@ async function apiCall(action, data = {}) {
 }
 
 async function loadAllData() {
-  console.log('⏳ Loading data...');
+  console.log('⏳ Loading data for user:', {
+    userId: State.user.id,
+    userName: State.user.name,
+    partnerId: State.user.partnerId,
+    partnerName: State.user.partnerName
+  });
+
   const tasksResult = await apiCall('getTasks', {});
 
   if (tasksResult.success && tasksResult.data) {
     State.setTasks(tasksResult.data);
-    console.log('✅ Tasks loaded:', tasksResult.data.length);
+    
+    console.log('📊 All tasks loaded:', tasksResult.data.length);
+    console.log('📋 My tasks:', State.getMyTasks('all').length);
+    console.log('👥 Assigned to me:', State.getMyTasks('all').map(t => ({
+      title: t.Title,
+      assignedTo: t.AssignedTo,
+      createdBy: t.CreatedBy
+    })));
+    
     renderHomeTasksList();
   } else {
     console.warn('⚠️ Could not load tasks:', tasksResult.error);
@@ -519,14 +753,20 @@ function renderAssignedTasks() {
 
 function renderTaskCard(task) {
   const isCompleted = task.Status === 'completed';
-  const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true;
+  const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true || task.IsPrivate === 1;
   const priority = task.Priority || 'medium';
   const category = task.Category || 'Task';
+  const assignedTo = task.AssignedTo || 'unknown';
+  
+  // Debug info
+  if (!task.Title) {
+    console.warn('⚠️ Task missing title:', task);
+  }
 
   return `
     <div class="task-card ${isCompleted ? 'completed' : ''}" data-task-id="${escapeHtml(task.TaskID)}">
       <div class="task-info">
-        <div class="task-title ${isCompleted ? 'line-through' : ''}">${escapeHtml(task.Title)}</div>
+        <div class="task-title ${isCompleted ? 'line-through' : ''}">${escapeHtml(task.Title || 'Untitled')}</div>
         <div class="task-meta">
           ${isPrivate ? '🔐 Private' : ''}
           ${category ? `<span>${escapeHtml(category)}</span>` : ''}
@@ -878,6 +1118,10 @@ async function submitTask(title, description, assignedToId, category, priority, 
     }
 
     console.log('✅ Task created successfully!');
+    
+    // Trigger immediate sync so partner sees new task right away
+    console.log('📤 Triggering immediate sync for partner...');
+    setTimeout(() => AutoSync.sync(), 500);
   } else {
     console.error('❌ Failed to create task:', result.error);
     alert('❌ Failed to create task: ' + (result.error || 'Unknown error'));
@@ -894,6 +1138,9 @@ function resetSetup() {
     updateTheme();
     updateUI();
     goToPage('home');
+    
+    // Force data reload for the new user
+    console.log('📥 Reloading data for new user...');
     loadAllData();
   }
 }
