@@ -684,10 +684,18 @@ function verifyPasscode() {
   }
 
   const task = State.getTask(State.pendingPasscodeTaskId);
-  if (!task) return;
+  if (!task) {
+    alert('Task not found');
+    return;
+  }
 
-  // Check if passcode matches (stored in AttachmentURLs field as safety measure)
-  const storedPasscode = task.AttachmentURLs ? task.AttachmentURLs.split('::')[0] : '';
+  // Get stored passcode from AttachmentURLs
+  let storedPasscode = '';
+  if (task.AttachmentURLs && task.AttachmentURLs.includes('::')) {
+    storedPasscode = task.AttachmentURLs.split('::')[0].trim();
+  }
+
+  console.log('Entered:', passcode, 'Stored:', storedPasscode);
 
   if (passcode !== storedPasscode) {
     alert('❌ Incorrect passcode');
@@ -697,12 +705,6 @@ function verifyPasscode() {
 
   closePasscodeModal();
   showTaskDetails(task);
-}
-
-function closePasscodeModal() {
-  document.getElementById('passcodeModal').style.display = 'none';
-  document.getElementById('passcodeInput').value = '';
-  State.pendingPasscodeTaskId = null;
 }
 
 // ============================================================================
