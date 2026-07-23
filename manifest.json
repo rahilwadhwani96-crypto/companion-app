@@ -1,18 +1,77 @@
 {
   "name": "Relationship Companion",
   "short_name": "Companion",
-  "description": "Stay connected with your partner",
-  "start_url": "/",
+  "description": "Stay connected with your partner. Tasks, timeline, milestones, and memories in one beautiful app.",
+  "start_url": "/companion-app/",
+  "scope": "/companion-app/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "theme_color": "#1a1f3a",
-  "background_color": "#ffffff",
+  "background_color": "#0f1217",
+  "categories": ["productivity", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Add Task",
+      "short_name": "Task",
+      "description": "Quickly add a new task",
+      "url": "/companion-app/?page=tasks",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%234a5fa5' width='96' height='96'/><text x='50%' y='50%' font-size='60' text-anchor='middle' dominant-baseline='central' fill='white'>📋</text></svg>",
+          "sizes": "96x96",
+          "type": "image/svg+xml",
+          "purpose": "any"
+        }
+      ]
+    },
+    {
+      "name": "View Timeline",
+      "short_name": "Timeline",
+      "description": "View your relationship timeline",
+      "url": "/companion-app/?page=timeline",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%23f4a0a0' width='96' height='96'/><text x='50%' y='50%' font-size='60' text-anchor='middle' dominant-baseline='central' fill='white'>❤️</text></svg>",
+          "sizes": "96x96",
+          "type": "image/svg+xml",
+          "purpose": "any"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%230f1217' width='540' height='720'/><text x='270' y='360' font-size='120' text-anchor='middle' dominant-baseline='central' fill='white'>💕</text></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1280 720'><rect fill='%230f1217' width='1280' height='720'/><text x='640' y='360' font-size='120' text-anchor='middle' dominant-baseline='central' fill='white'>💕</text></svg>",
+      "sizes": "1280x720",
+      "type": "image/svg+xml",
+      "form_factor": "wide"
+    }
+  ],
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a1f3a' width='192' height='192'/><text x='50%' y='50%' font-size='120' text-anchor='middle' dominant-baseline='central' fill='white'>💕</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%234a5fa5;stop-opacity:1' /><stop offset='100%' style='stop-color:%23f4a0a0;stop-opacity:1' /></linearGradient></defs><rect fill='url(%23grad)' width='192' height='192' rx='45'/><text x='96' y='96' font-size='110' text-anchor='middle' dominant-baseline='central' fill='white'>💕</text></svg>",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%234a5fa5;stop-opacity:1' /><stop offset='100%' style='stop-color:%23f4a0a0;stop-opacity:1' /></linearGradient></defs><circle cx='96' cy='96' r='96' fill='url(%23grad)'/><text x='96' y='96' font-size='110' text-anchor='middle' dominant-baseline='central' fill='white'>💕</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%234a5fa5;stop-opacity:1' /><stop offset='100%' style='stop-color:%23f4a0a0;stop-opacity:1' /></linearGradient></defs><rect fill='url(%23grad)' width='512' height='512'/><text x='256' y='256' font-size='320' text-anchor='middle' dominant-baseline='central' fill='white'>💕</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
-  ]
+  ],
+  "prefer_related_applications": false
 }
