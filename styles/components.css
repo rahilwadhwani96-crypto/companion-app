@@ -228,10 +228,8 @@ label {
 
 /* Tasks List */
 .tasks-list {
-  padding: 0 16px;
-  padding-bottom: 20px;
+  padding: 8px 16px 20px 16px;
 }
-
 /* Empty State - Compact */
 .empty-state-compact {
   text-align: center;
