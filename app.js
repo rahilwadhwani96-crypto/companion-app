@@ -235,7 +235,7 @@ async function completeSetup() {
 
   showMainApp();
   loadAllData();
-  goToPage('myTasks');
+  goToPage('home');
 }
 
 // ============================================================================
@@ -259,6 +259,8 @@ function updateUI() {
 
   document.getElementById('assignedToPartnerTitle').textContent = `Assigned to ${State.user.partnerName}`;
   document.getElementById('navAssignedLabel').textContent = State.user.partnerName.substring(0, 8);
+  document.getElementById('assignedActionText').textContent = State.user.partnerName.substring(0, 10);
+  document.getElementById('partnerTaskLabel').textContent = `For ${State.user.partnerName}`;
 
   document.getElementById('settingYourName').textContent = State.user.name;
   document.getElementById('settingPartnerName').textContent = State.user.partnerName;
@@ -310,22 +312,16 @@ const Pages = {
   settings: 'settingsPage'
 };
 
-const Pages = {
-  home: 'homePage',
-  myTasks: 'myTasksPage',
-  assignedToPartner: 'assignedToPartnerPage',
-  timeline: 'timelinePage',
-  notifications: 'notificationsPage',
-  settings: 'settingsPage'
-};
-
 function goToPage(page) {
+  // Hide all pages
   Object.values(Pages).forEach(id => {
     document.getElementById(id).style.display = 'none';
   });
 
+  // Show selected page
   document.getElementById(Pages[page]).style.display = 'block';
 
+  // Update nav active state
   document.querySelectorAll('.nav-tab').forEach(btn => {
     btn.classList.remove('active');
     if (btn.dataset.page === page) {
@@ -352,6 +348,7 @@ function goToPage(page) {
     loadAssignedToPartnerPage();
   }
 }
+
 // ============================================================================
 // API CALLS
 // ============================================================================
@@ -428,16 +425,13 @@ function loadHomePage() {
   let recentHtml = '';
   if (myCompletedToday > 0 || partnerCompletedToday > 0) {
     recentHtml = `
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        ${myCompletedToday > 0 ? `<div style="font-size: 14px;">✅ You completed ${myCompletedToday} task${myCompletedToday > 1 ? 's' : ''}</div>` : ''}
-        ${partnerCompletedToday > 0 ? `<div style="font-size: 14px;">✅ ${State.user.partnerName} completed ${partnerCompletedToday} task${partnerCompletedToday > 1 ? 's' : ''}</div>` : ''}
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        ${myCompletedToday > 0 ? `<div style="font-size: 13px;">✅ You completed ${myCompletedToday} task${myCompletedToday > 1 ? 's' : ''}</div>` : ''}
+        ${partnerCompletedToday > 0 ? `<div style="font-size: 13px;">✅ ${State.user.partnerName} completed ${partnerCompletedToday} task${partnerCompletedToday > 1 ? 's' : ''}</div>` : ''}
       </div>
     `;
   } else {
-    recentHtml = `
-      <div class="empty-state-icon">📝</div>
-      <div class="empty-state-title">No activity yet</div>
-    `;
+    recentHtml = '<div style="font-size: 13px; color: var(--color-text-tertiary);">No activity yet</div>';
   }
 
   document.getElementById('recentActivity').innerHTML = recentHtml;
@@ -466,10 +460,9 @@ function renderMyTasks() {
 
   if (tasks.length === 0) {
     document.getElementById('myTasksList').innerHTML = `
-      <div class="empty-state">
+      <div class="empty-state-compact">
         <div class="empty-state-icon">✨</div>
         <div class="empty-state-title">No tasks yet</div>
-        <p>Create your first task to get started!</p>
       </div>
     `;
     return;
@@ -488,9 +481,9 @@ function renderMyTasks() {
           ${escapeHtml(task.Title)}
         </div>
         <div class="task-meta">
-          ${task.DueDate ? `📅 ${task.DueDate}` : 'No date'}
-          • ${task.Priority}
-          • ${task.Category}
+          ${task.DueDate ? `📅 ${task.DueDate}` : ''}
+          ${task.Priority ? `${task.Priority}` : ''}
+          ${task.Category ? `${task.Category}` : ''}
         </div>
       </div>
       <div class="task-actions">
@@ -525,10 +518,9 @@ function renderAssignedTasks() {
 
   if (tasks.length === 0) {
     document.getElementById('assignedTasksList').innerHTML = `
-      <div class="empty-state">
+      <div class="empty-state-compact">
         <div class="empty-state-icon">🎯</div>
         <div class="empty-state-title">No tasks assigned yet</div>
-        <p>Create a task for ${State.user.partnerName}!</p>
       </div>
     `;
     return;
@@ -538,15 +530,15 @@ function renderAssignedTasks() {
     const statusEmoji = task.Status === 'completed' ? '✅' : '⏳';
     return `
     <div class="task-card animate-slide-in-up">
-      <div style="font-size: 20px; margin-right: 8px; min-width: 20px;">${statusEmoji}</div>
+      <div style="font-size: 18px; margin-right: 8px; min-width: 18px; flex-shrink: 0;">${statusEmoji}</div>
       <div class="task-info">
         <div class="task-title" style="${task.Status === 'completed' ? 'text-decoration: line-through; opacity: 0.6;' : ''}">
           ${escapeHtml(task.Title)}
         </div>
         <div class="task-meta">
-          ${task.DueDate ? `📅 ${task.DueDate}` : 'No date'}
-          • ${task.Priority}
-          • ${task.Category}
+          ${task.DueDate ? `📅 ${task.DueDate}` : ''}
+          ${task.Priority ? `${task.Priority}` : ''}
+          ${task.Category ? `${task.Category}` : ''}
         </div>
       </div>
       <div class="task-actions">
@@ -693,7 +685,7 @@ function resetSetup() {
     State.switchToPartner();
     updateTheme();
     updateUI();
-    goToPage('myTasks');
+    goToPage('home');
     loadAllData();
   }
 }
