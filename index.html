@@ -257,75 +257,48 @@
 
         <!-- Page Container -->
         <main class="page-container">
-          <!-- Home Page (Dashboard) -->
+          <!-- Home Page (Task List) -->
           <div id="homePage" class="page" style="display: none;">
-            <div class="dashboard">
-              <div class="stat-grid">
-                <div class="stat-card my-tasks">
-                  <div class="stat-number" id="myTaskCount">0</div>
-                  <div class="stat-label">My Tasks</div>
-                </div>
-                <div class="stat-card partner-tasks">
-                  <div class="stat-number" id="assignedToPartnerCount">0</div>
-                  <div class="stat-label" id="partnerTaskLabel">Waiting</div>
-                </div>
-              </div>
-
-              <div class="quick-actions">
-                <button class="action-btn" onclick="goToPage('myTasks')">
-                  <span class="action-icon">📋</span>
-                  <span class="action-text">My Tasks</span>
-                </button>
-                <button class="action-btn" onclick="goToPage('assignedToPartner')">
-                  <span class="action-icon">👥</span>
-                  <span class="action-text" id="assignedActionText">Assigned</span>
-                </button>
-                <button class="action-btn" onclick="openCreateTaskModal()">
-                  <span class="action-icon">➕</span>
-                  <span class="action-text">New Task</span>
-                </button>
-              </div>
-
-              <div class="activity-section">
-                <h3>Recent Activity</h3>
-                <div id="recentActivity"></div>
-              </div>
+            <div class="page-header compact">
+              <h2>Home</h2>
             </div>
+
+            <div class="filters">
+              <button class="filter-btn active" onclick="filterHome('all')">All</button>
+              <button class="filter-btn" onclick="filterHome('myTasks')">My Tasks</button>
+              <button class="filter-btn" onclick="filterHome('assigned')">Assigned</button>
+            </div>
+
+            <div id="homeTasksList" class="tasks-list"></div>
           </div>
 
-         <!-- My Tasks Page -->
+          <!-- My Tasks Page -->
           <div id="myTasksPage" class="page" style="display: none;">
-            <div class="page-header compact" style="padding-bottom: 6px;">
+            <div class="page-header compact">
               <h2>My Tasks</h2>
-              <button class="add-task-btn" onclick="openCreateTaskModal()">➕</button>
             </div>
 
-            <!-- Filters -->
             <div class="filters">
               <button class="filter-btn active" onclick="filterMyTasks('all')">All</button>
               <button class="filter-btn" onclick="filterMyTasks('open')">Open</button>
               <button class="filter-btn" onclick="filterMyTasks('completed')">Done</button>
             </div>
 
-            <!-- My Tasks List -->
             <div id="myTasksList" class="tasks-list"></div>
           </div>
 
           <!-- Assigned to Partner Page -->
           <div id="assignedToPartnerPage" class="page" style="display: none;">
-            <div class="page-header compact" style="padding-bottom: 6px;">
+            <div class="page-header compact">
               <h2 id="assignedToPartnerTitle">Assigned</h2>
-              <button class="add-task-btn" onclick="openCreateTaskModal()">➕</button>
             </div>
-            
-            <!-- Filters -->
+
             <div class="filters">
               <button class="filter-btn active" onclick="filterAssignedTasks('all')">All</button>
               <button class="filter-btn" onclick="filterAssignedTasks('open')">Open</button>
               <button class="filter-btn" onclick="filterAssignedTasks('completed')">Done</button>
             </div>
 
-            <!-- Assigned Tasks List -->
             <div id="assignedTasksList" class="tasks-list"></div>
           </div>
 
@@ -337,17 +310,6 @@
             <div class="empty-state-compact">
               <div class="empty-state-icon">🕐</div>
               <div class="empty-state-title">Coming Soon</div>
-            </div>
-          </div>
-
-          <!-- Notifications Page -->
-          <div id="notificationsPage" class="page" style="display: none;">
-            <div class="page-header compact">
-              <h2>Notifications</h2>
-            </div>
-            <div class="empty-state-compact">
-              <div class="empty-state-icon">📬</div>
-              <div class="empty-state-title">All caught up!</div>
             </div>
           </div>
 
@@ -419,6 +381,12 @@
           </button>
         </nav>
 
+        <!-- Bottom Add Task Button -->
+        <button id="bottomAddBtn" class="bottom-add-btn" onclick="openCreateTaskModal()">
+          <span>➕ Add Task</span>
+        </button>
+      </div>
+
       <!-- Create Task Modal -->
       <div id="createTaskModal" class="modal-overlay" style="display: none;">
         <div class="modal">
@@ -455,13 +423,55 @@
             <input type="date" id="taskDueDate" class="input">
 
             <label>
-              <input type="checkbox" id="taskPrivate"> 
+              <input type="checkbox" id="taskPrivate" onchange="togglePrivateFields()"> 
               <span style="margin-left: 8px; font-size: 14px;">Private task</span>
             </label>
+
+            <div id="privateFields" style="display: none;">
+              <label>Create Passcode (4 digits):</label>
+              <input type="text" id="taskPasscode" placeholder="0000" maxlength="4" inputmode="numeric" class="input">
+            </div>
+
+            <label>Attach Photo (optional):</label>
+            <input type="file" id="taskPhoto" accept="image/*" class="input">
           </div>
           <div class="modal-footer">
             <button class="btn-secondary" onclick="closeCreateTaskModal()">Cancel</button>
             <button class="btn-primary" onclick="createTask()">Add</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Task Details Modal -->
+      <div id="taskDetailsModal" class="modal-overlay" style="display: none;">
+        <div class="modal modal-details">
+          <div class="modal-header">
+            <h2 id="detailTaskTitle">Task</h2>
+            <button class="modal-close" onclick="closeTaskDetailsModal()">✕</button>
+          </div>
+          <div class="modal-content">
+            <div id="detailTaskContent"></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-danger" onclick="deleteDetailTask()">Delete</button>
+            <button id="detailCompleteBtn" class="btn-primary" onclick="completeDetailTask()">Mark Complete</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Passcode Modal -->
+      <div id="passcodeModal" class="modal-overlay" style="display: none;">
+        <div class="modal">
+          <div class="modal-header">
+            <h2>🔐 Private Task</h2>
+          </div>
+          <div class="modal-content">
+            <p style="text-align: center; margin-bottom: 16px; color: var(--color-text-secondary);">This task is private. Enter passcode to view:</p>
+            <input type="text" id="passcodeInput" placeholder="0000" maxlength="4" inputmode="numeric" class="input" style="text-align: center; font-size: 20px; letter-spacing: 8px;">
+          </div>
+          <div class="modal-footer">
+            <button class="btn-secondary" onclick="closePasscodeModal()">Cancel</button>
+            <button class="btn-primary" onclick="verifyPasscode()">Unlock</button>
           </div>
         </div>
       </div>
