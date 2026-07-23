@@ -1,6 +1,7 @@
 /**
- * Companion App - Complete Application Logic v2
+ * Companion App - Complete Application Logic v3
  * With PIN-based device linking, passcode protection, and photo attachments
+ * Passcode stored in ContentHash field
  */
 
 // ============================================================================
@@ -406,10 +407,13 @@ function loadHomePage() {
 function filterHome(type) {
   if (type === 'all') {
     State.filterStatus = 'all';
+    State.filterContext = 'home';
   } else if (type === 'myTasks') {
     State.filterContext = 'homeMyTasks';
+    State.filterStatus = 'all';
   } else if (type === 'assigned') {
     State.filterContext = 'homeAssigned';
+    State.filterStatus = 'all';
   }
   renderHomeTasksList();
   updateFilterButtons(type);
@@ -616,7 +620,7 @@ function showTaskDetails(task) {
       ` : ''}
     </div>
 
-    ${task.AttachmentURLs ? `
+    ${task.AttachmentURLs && !task.AttachmentURLs.startsWith('data:') ? `
     <div class="task-detail-section">
       <h3>Attachments</h3>
       <p>${escapeHtml(task.AttachmentURLs)}</p>
@@ -704,6 +708,12 @@ function verifyPasscode() {
   showTaskDetails(task);
 }
 
+function closePasscodeModal() {
+  document.getElementById('passcodeModal').style.display = 'none';
+  document.getElementById('passcodeInput').value = '';
+  State.pendingPasscodeTaskId = null;
+}
+
 // ============================================================================
 // TASK OPERATIONS
 // ============================================================================
@@ -780,16 +790,16 @@ async function createTask() {
 async function submitTask(title, description, assignedToId, category, priority, dueDate, isPrivate, passcode, attachmentData) {
   console.log('➕ Creating task...');
 
-  // Store passcode and attachment separately
-  let attachmentField = '';
+  // Store passcode in ContentHash field, attachment in AttachmentURLs
+  let contentHash = '';
+  let attachmentField = attachmentData || '';
+
   if (isPrivate && passcode) {
-    // Format: "passcode::data" (without spaces)
-    attachmentField = passcode.trim() + '::' + (attachmentData || '');
-  } else if (attachmentData) {
-    attachmentField = attachmentData;
+    contentHash = passcode.trim();
   }
 
-  console.log('Attachment field:', attachmentField.substring(0, 50) + '...');
+  console.log('ContentHash (passcode):', contentHash);
+  console.log('AttachmentURLs:', attachmentField.substring(0, 50));
 
   const result = await apiCall('createTask', {
     Title: title,
@@ -801,6 +811,7 @@ async function submitTask(title, description, assignedToId, category, priority, 
     AssignedTo: assignedToId,
     CreatedBy: State.user.id,
     Status: 'open',
+    ContentHash: contentHash,
     AttachmentURLs: attachmentField
   });
 
@@ -822,6 +833,7 @@ async function submitTask(title, description, assignedToId, category, priority, 
     alert('❌ Failed to create task: ' + (result.error || 'Unknown error'));
   }
 }
+
 // ============================================================================
 // SETTINGS
 // ============================================================================
