@@ -7,7 +7,7 @@
 // CONFIGURATION
 // ============================================================================
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbwJJeWH4dgS6pJep1ieufBQ3bcEkLGdsH_BmGpCxH9Q_S3ckxg6V8soQTeSE2T0oIjulg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzY7xAh9eQHl6idW4W6i--7YIRjp7IbFGQ4a1k3IXxrnry1X1b7lRjmpUGMWpkUy1NCQg/exec';
 
 // ============================================================================
 // STATE MANAGEMENT
@@ -23,7 +23,7 @@ const State = {
   },
 
   currentTheme: 'his',
-  currentPage: 'myTasks',
+  currentPage: 'home',
   tasks: [],
   filterStatus: 'all',
   filterContext: 'myTasks',
@@ -140,16 +140,13 @@ function showSetupWizard() {
 }
 
 function goToStep(stepNumber) {
-  // Hide all steps
   document.getElementById('setupStep1').classList.remove('active');
   document.getElementById('setupStep2').classList.remove('active');
 
-  // Show requested step
   if (stepNumber === 1) {
     document.getElementById('setupStep1').classList.add('active');
     setTimeout(() => document.getElementById('yourName').focus(), 100);
   } else if (stepNumber === 2) {
-    // Validate step 1 first
     const yourName = document.getElementById('yourName').value.trim();
     const partnerName = document.getElementById('partnerName').value.trim();
 
@@ -170,14 +167,12 @@ function updatePinForm() {
   const pinMessage = document.getElementById('pinMessage');
 
   if (pinOption === 'create') {
-    // Generate random PIN
     const newPin = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
     pinInput.value = newPin;
     pinInput.disabled = true;
     pinMessage.textContent = '👆 Share this code with your partner';
     pinInputDiv.style.display = 'block';
   } else if (pinOption === 'join') {
-    // Allow user to enter PIN
     pinInput.value = '';
     pinInput.disabled = false;
     pinInput.focus();
@@ -216,10 +211,8 @@ async function completeSetup() {
 
   console.log(`✅ Setup complete: ${yourName} & ${partnerName} with PIN: ${syncPin}`);
 
-  // Save user data
   State.setUser(yourName, partnerName, syncPin);
 
-  // Initialize users in Google Sheet
   console.log('📝 Saving user data to Google Sheet...');
   
   const initResult = await apiCall('initializeUsers', {
@@ -281,6 +274,7 @@ function updateUI() {
   const assignedLabel = document.getElementById('assignedToLabel');
   if (assignedLabel) assignedLabel.textContent = `Waiting for ${State.user.partnerName}`;
 }
+
 // ============================================================================
 // THEME & UI
 // ============================================================================
@@ -326,15 +320,12 @@ const Pages = {
 };
 
 function goToPage(page) {
-  // Hide all pages
   Object.values(Pages).forEach(id => {
     document.getElementById(id).style.display = 'none';
   });
 
-  // Show selected page
   document.getElementById(Pages[page]).style.display = 'block';
 
-  // Update nav active state
   document.querySelectorAll('.nav-tab').forEach(btn => {
     btn.classList.remove('active');
     if (btn.dataset.page === page) {
@@ -344,15 +335,6 @@ function goToPage(page) {
 
   State.currentPage = page;
 
-  // Show FAB only on task pages
-  const fab = document.getElementById('fabAddTask');
-  if (page === 'myTasks' || page === 'assignedToPartner') {
-    fab.style.display = 'flex';
-  } else {
-    fab.style.display = 'none';
-  }
-
-  // Load page data
   if (page === 'home') {
     loadHomePage();
   } else if (page === 'myTasks') {
