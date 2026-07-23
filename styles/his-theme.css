@@ -1,0 +1,201 @@
+/**
+ * His Theme - Dark Professional
+ * Navy, Indigo, Glassmorphism
+ */
+
+body.theme-his {
+  /* Primary Colors */
+  --color-primary: #4a5fa5;
+  --color-primary-light: #6b7ec2;
+  --color-primary-dark: #3a4b7f;
+  
+  /* Surface */
+  --color-surface-default: #0f1217;
+  --color-surface-elevated: #1a1f3a;
+  --color-surface-elevated-2: #252d4a;
+  
+  /* Text */
+  --color-text-primary: #e8eef5;
+  --color-text-secondary: #a8b0c0;
+  --color-text-tertiary: #6b7280;
+  
+  /* Accents */
+  --color-accent-blue: #3b82f6;
+  --color-accent-indigo: #6366f1;
+  --color-accent-purple: #8b5cf6;
+  --color-accent-cyan: #06b6d4;
+  
+  /* Borders */
+  --color-border-light: rgba(148, 163, 184, 0.1);
+  --color-border-medium: rgba(148, 163, 184, 0.2);
+  
+  /* Semantic */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #4a5fa5 0%, #6b7ec2 100%);
+  --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  --gradient-glow: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
+  
+  /* Shadows - Elevated */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-base: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+/* Glassmorphism Effect */
+body.theme-his .modal,
+body.theme-his .profile-menu {
+  background: rgba(26, 31, 58, 0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+body.theme-his .bottom-nav {
+  background: rgba(15, 18, 23, 0.7);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+/* Card Hover Effects */
+body.theme-his .card {
+  background: rgba(26, 31, 58, 0.6);
+  border: 1px solid var(--color-border-light);
+  transition: all var(--duration-normal) var(--easing-out);
+}
+
+body.theme-his .card:hover {
+  background: rgba(37, 45, 74, 0.8);
+  border-color: var(--color-accent-blue);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+}
+
+/* Buttons */
+body.theme-his .btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  box-shadow: 0 0 20px rgba(74, 95, 165, 0.2);
+}
+
+body.theme-his .btn-primary:hover {
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+  transform: translateY(-2px);
+}
+
+body.theme-his .btn-secondary {
+  background: rgba(74, 95, 165, 0.1);
+  border: 1px solid var(--color-accent-indigo);
+  color: var(--color-accent-indigo);
+}
+
+body.theme-his .btn-secondary:hover {
+  background: rgba(74, 95, 165, 0.2);
+}
+
+/* Inputs */
+body.theme-his input,
+body.theme-his textarea,
+body.theme-his select {
+  background: rgba(37, 45, 74, 0.5);
+  border: 1px solid var(--color-border-light);
+  color: var(--color-text-primary);
+}
+
+body.theme-his input:focus,
+body.theme-his textarea:focus,
+body.theme-his select:focus {
+  border-color: var(--color-accent-blue);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
+}
+
+/* Task Cards */
+body.theme-his .task-card {
+  background: rgba(37, 45, 74, 0.4);
+  border: 1px solid var(--color-border-light);
+}
+
+body.theme-his .task-card:hover {
+  border-color: var(--color-accent-indigo);
+  background: rgba(37, 45, 74, 0.6);
+}
+
+/* Nav Active State */
+body.theme-his .nav-tab.active {
+  color: var(--color-accent-cyan);
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Badges */
+body.theme-his .badge {
+  background: var(--gradient-primary);
+  box-shadow: 0 0 12px rgba(74, 95, 165, 0.2);
+}
+
+/* Sparkle Animation */
+@keyframes sparkle-his {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(59, 130, 246, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+  }
+}
+
+body.theme-his .card:hover {
+  animation: sparkle-his 2s ease-in-out;
+}
+
+/* Gradient Text */
+body.theme-his .gradient-text {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Header Styling */
+body.theme-his .header {
+  background: linear-gradient(135deg, rgba(15, 18, 23, 0.9) 0%, rgba(26, 31, 58, 0.8) 100%);
+  border-bottom: 1px solid var(--color-border-medium);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.theme-his .header h1 {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animated Gradient Background */
+body.theme-his {
+  background: 
+    linear-gradient(135deg, #0f1217 0%, #1a1f3a 50%, #0f1217 100%);
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Smooth Transitions */
+body.theme-his * {
+  transition: color var(--duration-normal) var(--easing-out),
+              background-color var(--duration-normal) var(--easing-out),
+              border-color var(--duration-normal) var(--easing-out);
+}
+
+body.theme-his button {
+  transition: all var(--duration-normal) var(--easing-out);
+}
