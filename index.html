@@ -72,6 +72,7 @@
     .setup-form input:focus {
       border-color: var(--color-primary);
       box-shadow: 0 0 8px rgba(74, 95, 165, 0.2);
+      outline: none;
     }
 
     .setup-form button {
@@ -89,6 +90,59 @@
     .setup-form button:active {
       transform: scale(0.98);
     }
+
+    .setup-step {
+      display: none;
+    }
+
+    .setup-step.active {
+      display: block;
+      animation: fadeIn 300ms ease-out;
+    }
+
+    .setup-subtitle {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .pin-input {
+      font-size: 24px !important;
+      letter-spacing: 8px;
+      text-align: center;
+      font-weight: 600;
+      font-family: monospace;
+    }
+
+    .pin-info {
+      background: var(--color-surface-default);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      margin-top: 12px;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .nav-buttons button {
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
   </style>
 </head>
 <body class="theme-his">
@@ -104,36 +158,77 @@
       <!-- Setup Wizard -->
       <div id="setupWizard" class="setup-wizard" style="display: none;">
         <div class="setup-content">
-          <h1>💕 Welcome!</h1>
-          <p>Let's set up your Companion app</p>
-          
-          <div class="setup-form">
-            <div>
-              <label for="yourName">What's your name?</label>
-              <input 
-                type="text" 
-                id="yourName" 
-                placeholder="Your name" 
-                autocomplete="off"
-              >
-            </div>
+          <!-- Step 1: Enter Name -->
+          <div id="setupStep1" class="setup-step active">
+            <h1>💕 Welcome!</h1>
+            <p class="setup-subtitle">Let's set up your Companion app</p>
+            
+            <div class="setup-form">
+              <div>
+                <label for="yourName">What's your name?</label>
+                <input 
+                  type="text" 
+                  id="yourName" 
+                  placeholder="Your name" 
+                  autocomplete="off"
+                >
+              </div>
 
-            <div>
-              <label for="partnerName">Partner's name?</label>
-              <input 
-                type="text" 
-                id="partnerName" 
-                placeholder="Their name" 
-                autocomplete="off"
-              >
-            </div>
+              <div>
+                <label for="partnerName">Partner's name?</label>
+                <input 
+                  type="text" 
+                  id="partnerName" 
+                  placeholder="Their name" 
+                  autocomplete="off"
+                >
+              </div>
 
-            <button onclick="completeSetup()">Get Started 🚀</button>
+              <button onclick="goToStep(2)">Continue →</button>
+            </div>
           </div>
 
-          <p style="margin-top: 24px; font-size: 12px; color: var(--color-text-tertiary);">
-            You can change this anytime in Settings
-          </p>
+          <!-- Step 2: PIN Setup -->
+          <div id="setupStep2" class="setup-step">
+            <h1>🔐 Sync Code</h1>
+            <p class="setup-subtitle">Choose how to connect</p>
+            
+            <div class="setup-form">
+              <p style="color: var(--color-text-secondary); font-size: 14px; margin-bottom: 20px;">
+                A 4-digit code that links you and your partner's phones
+              </p>
+
+              <div>
+                <label for="pinOption">I want to:</label>
+                <select id="pinOption" class="input" onchange="updatePinForm()" style="height: auto; padding: 10px 12px;">
+                  <option value="">Select...</option>
+                  <option value="create">Create a new code</option>
+                  <option value="join">Enter a code from my partner</option>
+                </select>
+              </div>
+
+              <div id="pinInputDiv" style="display: none;">
+                <label for="syncPin">4-Digit Code:</label>
+                <input 
+                  type="text" 
+                  id="syncPin" 
+                  class="pin-input"
+                  placeholder="0000" 
+                  maxlength="4"
+                  inputmode="numeric"
+                  autocomplete="off"
+                >
+                <div class="pin-info">
+                  <div id="pinMessage">Share this code with your partner</div>
+                </div>
+              </div>
+
+              <div class="nav-buttons">
+                <button onclick="goToStep(1)" style="background: var(--color-surface-elevated); color: var(--color-text-primary); border: 1px solid var(--color-border-light);">← Back</button>
+                <button onclick="completeSetup()" style="flex: 2;">Let's Go! 🚀</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -265,6 +360,10 @@
                 <label>Partner's Name</label>
                 <div id="settingPartnerName" style="font-size: 14px; color: var(--color-text-secondary);">-</div>
               </div>
+              <div class="setting-item">
+                <label>Sync Code</label>
+                <div id="settingSyncPin" style="font-size: 14px; color: var(--color-text-secondary); font-family: monospace;">-</div>
+              </div>
               <hr>
               <div class="setting-item">
                 <label>Notifications</label>
@@ -318,13 +417,13 @@
             <textarea id="taskDesc" placeholder="Description (optional)" class="input" rows="3"></textarea>
             
             <label style="margin-top: 8px;">Assign to:</label>
-            <select id="taskAssignedTo" class="input">
+            <select id="taskAssignedTo" class="input" required style="height: auto; padding: 10px 12px;">
               <option value="">Select...</option>
-              <option id="assignToMeOption" value="me">Me</option>
+              <option value="me">Me</option>
               <option id="assignToPartnerOption" value="partner">Partner</option>
             </select>
 
-            <select id="taskCategory" class="input">
+            <select id="taskCategory" class="input" style="height: auto; padding: 10px 12px;">
               <option value="">Select category...</option>
               <option value="Work">🏢 Work</option>
               <option value="Home">🏠 Home</option>
@@ -333,7 +432,7 @@
               <option value="Together">💕 Together</option>
             </select>
 
-            <select id="taskPriority" class="input">
+            <select id="taskPriority" class="input" style="height: auto; padding: 10px 12px;">
               <option value="low">Low Priority</option>
               <option value="medium" selected>Medium Priority</option>
               <option value="high">High Priority</option>
