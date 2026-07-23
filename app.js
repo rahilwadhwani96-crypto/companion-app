@@ -267,8 +267,6 @@ function showMainApp() {
 
 function updateUI() {
   if (!State.user || !State.user.name) return;
-
-  document.getElementById('userEmoji').textContent = State.user.id === 'user1' ? '👨' : '👩';
   
   const assignToPartnerOption = document.getElementById('assignToPartnerOption');
   if (assignToPartnerOption) {
@@ -336,22 +334,10 @@ function goToPage(pageName) {
 }
 
 function goToSettings() {
-  closeProfileMenu();
   goToPage('settings');
 }
 
-// ============================================================================
-// PROFILE MENU
-// ============================================================================
 
-function toggleProfileMenu() {
-  const menu = document.getElementById('profileMenu');
-  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-}
-
-function closeProfileMenu() {
-  document.getElementById('profileMenu').style.display = 'none';
-}
 
 // ============================================================================
 // THEME MANAGEMENT - MOVED FROM HEADER TO SETTINGS
@@ -873,7 +859,6 @@ document.addEventListener('keydown', (e) => {
     closeCreateTaskModal();
     closeTaskDetailsModal();
     closePasscodeModal();
-    closeProfileMenu();
   }
 
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
