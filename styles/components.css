@@ -604,6 +604,64 @@ select:focus {
   }
 }
 
+/* Pull to Refresh Indicator */
+#refreshIndicator {
+  position: sticky;
+  top: 0;
+  text-align: center;
+  padding: 16px;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 50;
+  transition: opacity 200ms ease-out;
+  background: var(--color-surface-elevated);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+/* Sync notification animations */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100px);
+    opacity: 0;
+  }
+}
+
+/* Sync icon rotation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+#syncIcon.syncing {
+  animation: spin 1s linear infinite;
+}
+
+#syncStatus {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  transition: opacity 200ms ease-out;
+}
+
 /* Z-index management */
 :root {
   --z-nav: 40;
