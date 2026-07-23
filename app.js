@@ -11,6 +11,41 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbzY7xAh9eQHl6idW4W6i--7YIRjp7IbFGQ4a1k3IXxrnry1X1b7lRjmpUGMWpkUy1NCQg/exec';
 
 // ============================================================================
+// PHOTO STORAGE (localStorage)
+// ============================================================================
+
+const PhotoStorage = {
+  store(taskId, photoData) {
+    try {
+      localStorage.setItem(`photo_${taskId}`, photoData);
+      console.log('📸 Photo stored locally for task:', taskId);
+      return taskId;
+    } catch (e) {
+      console.error('❌ Photo storage failed:', e);
+      return null;
+    }
+  },
+
+  retrieve(taskId) {
+    try {
+      const photo = localStorage.getItem(`photo_${taskId}`);
+      return photo || null;
+    } catch (e) {
+      console.error('❌ Photo retrieval failed:', e);
+      return null;
+    }
+  },
+
+  delete(taskId) {
+    try {
+      localStorage.removeItem(`photo_${taskId}`);
+    } catch (e) {
+      console.error('❌ Photo delete failed:', e);
+    }
+  }
+};
+
+// ============================================================================
 // STATE MANAGEMENT
 // ============================================================================
 
@@ -544,12 +579,27 @@ function updateFilterButtons(selector) {
 
 async function handleTaskClick(taskId) {
   const task = State.getTask(taskId);
-  if (!task) return;
+  if (!task) {
+    console.error('❌ Task not found:', taskId);
+    return;
+  }
 
-  const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true;
-  const hasPasscode = task.ContentHash && task.ContentHash.trim().length > 0;
+  // Check if task is private and has passcode
+  const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true || task.IsPrivate === 1;
+  const storedPasscode = (task.ContentHash || '').trim();
+  const hasPasscode = storedPasscode.length > 0;
+
+  console.log('🔍 Task clicked:', {
+    taskId: taskId,
+    isPrivate: isPrivate,
+    hasPasscode: hasPasscode,
+    storedPasscode: storedPasscode,
+    IsPrivate: task.IsPrivate,
+    ContentHash: task.ContentHash
+  });
 
   if (isPrivate && hasPasscode) {
+    console.log('🔐 Showing passcode modal for task:', taskId);
     State.pendingPasscodeTaskId = taskId;
     document.getElementById('passcodeModal').style.display = 'flex';
     setTimeout(() => document.getElementById('passcodeInput').focus(), 100);
@@ -563,7 +613,15 @@ function showTaskDetails(task) {
 
   document.getElementById('detailTaskTitle').textContent = escapeHtml(task.Title);
 
-  const hasPhoto = task.AttachmentURLs && task.AttachmentURLs.trim().length > 0;
+  // Check for photo in localStorage
+  const photoData = PhotoStorage.retrieve(task.TaskID);
+  const hasPhoto = photoData && photoData.length > 0;
+
+  console.log('📸 Checking for photo:', {
+    taskId: task.TaskID,
+    hasPhoto: hasPhoto,
+    photoLength: photoData ? photoData.length : 0
+  });
 
   const html = `
     <div class="task-detail-section">
@@ -573,8 +631,8 @@ function showTaskDetails(task) {
 
     ${hasPhoto ? `
       <div class="task-detail-section">
-        <h3>Photo</h3>
-        <img src="${escapeHtml(task.AttachmentURLs)}" 
+        <h3>📸 Photo</h3>
+        <img src="${photoData}" 
              style="width: 100%; max-height: 300px; border-radius: 8px; object-fit: cover; margin-top: 8px;" 
              alt="Task attachment">
       </div>
@@ -637,6 +695,9 @@ function deleteDetailTask() {
   if (!State.selectedTaskId) return;
   if (!confirm('Delete this task?')) return;
 
+  // Delete photo from localStorage if exists
+  PhotoStorage.delete(State.selectedTaskId);
+  
   State.removeTask(State.selectedTaskId);
 
   if (State.currentPage === 'home') {
@@ -769,16 +830,18 @@ async function createTask() {
 async function submitTask(title, description, assignedToId, category, priority, dueDate, isPrivate, passcode, attachmentData) {
   console.log('➕ Creating task...');
 
-  // Store passcode in ContentHash field, attachment in AttachmentURLs
+  // Prepare passcode (stored in ContentHash field in sheet)
   let contentHash = '';
-  let attachmentField = attachmentData || '';
-
   if (isPrivate && passcode) {
     contentHash = passcode.trim();
   }
 
-  console.log('ContentHash (passcode):', contentHash);
-  console.log('AttachmentURLs (length):', attachmentField.length);
+  console.log('📋 Task data:', {
+    isPrivate: isPrivate,
+    hasPasscode: contentHash.length > 0,
+    contentHash: contentHash,
+    hasAttachment: attachmentData && attachmentData.length > 0
+  });
 
   const result = await apiCall('createTask', {
     Title: title,
@@ -791,11 +854,19 @@ async function submitTask(title, description, assignedToId, category, priority, 
     CreatedBy: State.user.id,
     Status: 'open',
     ContentHash: contentHash,
-    AttachmentURLs: attachmentField
+    AttachmentURLs: 'photo' // Marker that this task has a photo
   });
 
   if (result.success) {
-    State.addTask(result.data);
+    const newTask = result.data;
+    
+    // Store photo locally if it exists
+    if (attachmentData && attachmentData.length > 0) {
+      PhotoStorage.store(newTask.TaskID, attachmentData);
+      console.log('📸 Photo stored for task:', newTask.TaskID);
+    }
+
+    State.addTask(newTask);
     closeCreateTaskModal();
 
     if (State.currentPage === 'home') {
