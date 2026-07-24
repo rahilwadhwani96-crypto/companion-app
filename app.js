@@ -6,12 +6,13 @@
  * No complexity. No tricks. Just work.
  */
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbzY7xAh9eQHl6idW4W6i--7YIRjp7IbFGQ4a1k3IXxrnry1X1b7lRjmpUGMWpkUy1NCQg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxUxHAxXWdC2ME0qmrtgAkGOUFISLGqJMMcbb3FSkRoxFlBA0ySTCbwLQaUiVnj70CoBA/exec';
 
 // Simple global state
 let currentUser = null;
 let allTasks = [];
 let currentPage = 'home';
+let currentTaskId = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
