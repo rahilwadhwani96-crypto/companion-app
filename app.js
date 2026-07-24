@@ -6,7 +6,7 @@
  * No complexity. No tricks. Just work.
  */
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbxUxHAxXWdC2ME0qmrtgAkGOUFISLGqJMMcbb3FSkRoxFlBA0ySTCbwLQaUiVnj70CoBA/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxvH3TlSOZb_B065MGbjH6uqBoAj6GHhtVOrzgHoQPW_2h97slsEMclosbW0pGmg66M5g/exec';
 
 // Simple global state
 let currentUser = null;
@@ -192,6 +192,16 @@ async function loadAllTasks() {
     allTasks = result.data;
     console.log('✅ Tasks loaded:', allTasks.length, 'tasks');
     console.log('   Tasks:', allTasks.map(t => ({ id: t.TaskID, title: t.Title, assigned: t.AssignedTo })));
+    
+    // DEBUG: Check private/passcode fields
+    console.log('🔐 Checking protected tasks:');
+    allTasks.forEach(task => {
+      const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true;
+      const hasHash = (task.ContentHash || '').trim().length > 0;
+      if (isPrivate || hasHash) {
+        console.log(`  - ${task.Title}: IsPrivate=${task.IsPrivate}, ContentHash="${task.ContentHash}"`);
+      }
+    });
 
     // Render current page
     renderCurrentPage();
@@ -330,11 +340,8 @@ function renderTaskCard(task) {
 }
 
 function attachTaskListeners() {
-  document.querySelectorAll('.task-card').forEach(card => {
-    card.addEventListener('click', function(e) {
-      e.stopPropagation();
-    });
-  });
+  // NOT NEEDED - inline onclick handlers work fine
+  // Removed stopPropagation() that was breaking mobile clicks
 }
 
 function escapeHtml(text) {
@@ -438,20 +445,30 @@ function clickTask(taskId) {
     return;
   }
 
-  console.log('📝 Task found:', task.Title);
-  console.log('🔒 IsPrivate:', task.IsPrivate);
-  console.log('🔐 ContentHash:', task.ContentHash);
+  console.log('📝 Task data:', {
+    title: task.Title,
+    IsPrivate: task.IsPrivate,
+    IsPrivate_type: typeof task.IsPrivate,
+    IsPrivate_length: (task.IsPrivate || '').length,
+    ContentHash: task.ContentHash,
+    ContentHash_type: typeof task.ContentHash,
+    ContentHash_length: (task.ContentHash || '').length
+  });
 
   const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true;
   const hasPasscode = (task.ContentHash || '').trim().length > 0;
 
-  console.log('✅ isPrivate:', isPrivate, 'hasPasscode:', hasPasscode);
+  console.log('🔐 Checks:', {
+    isPrivate: isPrivate,
+    hasPasscode: hasPasscode,
+    willPrompt: isPrivate && hasPasscode
+  });
 
   if (isPrivate && hasPasscode) {
-    console.log('🔐 Prompting for passcode...');
+    console.log('🔐 PROMPTING FOR PASSCODE');
     promptPasscode(taskId);
   } else {
-    console.log('📖 Showing task details...');
+    console.log('📖 SHOWING DETAILS (no password needed)');
     showTaskDetails(task);
   }
 }
