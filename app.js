@@ -11,7 +11,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxvH3TlSOZb_B065MGbjH6u
 // Simple global state
 let currentUser = null;
 let allTasks = [];
-let currentPage = 'home';
+let currentPage = 'myTasks';  // Changed from 'home' to 'myTasks'
 let currentTaskId = null;
 
 // Initialize
