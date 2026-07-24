@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="styles/his-theme.css">
   <link rel="stylesheet" href="styles/her-theme.css">
   <style>
+    /* Setup Wizard */
     .setup-wizard {
       display: flex;
       align-items: center;
@@ -28,38 +29,16 @@
       min-height: 100vh;
       padding: 16px;
     }
-
     .setup-content {
       text-align: center;
       max-width: 400px;
       width: 100%;
     }
-
-    .setup-content h1 {
-      font-size: 32px;
-      margin-bottom: 12px;
-    }
-
-    .setup-content p {
-      color: var(--color-text-secondary);
-      margin-bottom: 32px;
-      font-size: 16px;
-    }
-
-    .setup-form {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .setup-form label {
-      text-align: left;
-      margin-bottom: 8px;
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .setup-form input {
+    .setup-content h1 { font-size: 32px; margin-bottom: 12px; }
+    .setup-content p { color: var(--color-text-secondary); margin-bottom: 32px; font-size: 16px; }
+    .setup-form { display: flex; flex-direction: column; gap: 16px; }
+    .setup-form label { text-align: left; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
+    .setup-form input, .setup-form select {
       width: 100%;
       padding: 12px 16px;
       border: 1.5px solid var(--color-border-light);
@@ -68,13 +47,11 @@
       color: var(--color-text-primary);
       font-size: 16px;
     }
-
-    .setup-form input:focus {
+    .setup-form input:focus, .setup-form select:focus {
       border-color: var(--color-primary);
       box-shadow: 0 0 8px rgba(74, 95, 165, 0.2);
       outline: none;
     }
-
     .setup-form button {
       padding: 12px 24px;
       background: linear-gradient(135deg, #f5d5c0 0%, #f4a0a0 100%);
@@ -86,62 +63,58 @@
       cursor: pointer;
       margin-top: 16px;
     }
+    .setup-form button:active { transform: scale(0.98); }
+    .setup-step { display: none; }
+    .setup-step.active { display: block; animation: fadeIn 300ms ease-out; }
+    .setup-subtitle { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 24px; }
+    .pin-input { font-size: 24px !important; letter-spacing: 8px; text-align: center; font-weight: 600; font-family: monospace; }
+    .pin-info { background: var(--color-surface-default); padding: 12px; border-radius: 8px; font-size: 12px; color: var(--color-text-secondary); margin-top: 12px; }
+    .nav-buttons { display: flex; gap: 12px; margin-top: 24px; }
+    .nav-buttons button { flex: 1; padding: 10px; font-size: 14px; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    .setup-form button:active {
-      transform: scale(0.98);
-    }
+    /* Page Container */
+    .page-container { overflow-y: auto; flex: 1; }
 
-    .setup-step {
-      display: none;
-    }
-
-    .setup-step.active {
-      display: block;
-      animation: fadeIn 300ms ease-out;
-    }
-
-    .setup-subtitle {
-      font-size: 14px;
-      color: var(--color-text-secondary);
-      margin-bottom: 24px;
-    }
-
-    .pin-input {
-      font-size: 24px !important;
-      letter-spacing: 8px;
-      text-align: center;
-      font-weight: 600;
-      font-family: monospace;
-    }
-
-    .pin-info {
-      background: var(--color-surface-default);
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      color: var(--color-text-secondary);
-      margin-top: 12px;
-    }
-
-    .nav-buttons {
+    /* Filters */
+    .filters {
       display: flex;
       gap: 12px;
-      margin-top: 24px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--color-border-light);
+      background: var(--color-surface-default);
+    }
+    .filter-btn {
+      padding: 6px 12px;
+      border: 1px solid var(--color-border-light);
+      border-radius: 20px;
+      background: transparent;
+      color: var(--color-text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 200ms ease;
+    }
+    .filter-btn.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
     }
 
-    .nav-buttons button {
-      flex: 1;
-      padding: 10px;
-      font-size: 14px;
+    /* Settings List */
+    .settings-list { padding: 16px; }
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid var(--color-border-light);
     }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
+    .setting-label { font-weight: 600; font-size: 14px; }
+    .setting-value { font-size: 13px; color: var(--color-text-secondary); }
+    .settings-list select, .settings-list input[type="checkbox"] {
+      height: auto;
+      width: auto;
     }
   </style>
 </head>
@@ -158,71 +131,44 @@
       <!-- Setup Wizard -->
       <div id="setupWizard" class="setup-wizard" style="display: none;">
         <div class="setup-content">
-          <!-- Step 1: Enter Name -->
+          <!-- Step 1 -->
           <div id="setupStep1" class="setup-step active">
             <h1>💕 Welcome!</h1>
             <p class="setup-subtitle">Let's set up your Companion app</p>
-            
             <div class="setup-form">
               <div>
                 <label for="yourName">What's your name?</label>
-                <input 
-                  type="text" 
-                  id="yourName" 
-                  placeholder="Your name" 
-                  autocomplete="off"
-                >
+                <input type="text" id="yourName" placeholder="Your name" autocomplete="off">
               </div>
-
               <div>
                 <label for="partnerName">Partner's name?</label>
-                <input 
-                  type="text" 
-                  id="partnerName" 
-                  placeholder="Their name" 
-                  autocomplete="off"
-                >
+                <input type="text" id="partnerName" placeholder="Their name" autocomplete="off">
               </div>
-
               <button onclick="goToStep(2)">Continue →</button>
             </div>
           </div>
 
-          <!-- Step 2: PIN Setup -->
+          <!-- Step 2 -->
           <div id="setupStep2" class="setup-step">
             <h1>🔐 Sync Code</h1>
             <p class="setup-subtitle">Choose how to connect</p>
-            
             <div class="setup-form">
               <p style="color: var(--color-text-secondary); font-size: 14px; margin-bottom: 20px;">
                 A 4-digit code that links you and your partner's phones
               </p>
-
               <div>
                 <label for="pinOption">I want to:</label>
-                <select id="pinOption" class="input" onchange="updatePinForm()" style="height: auto; padding: 10px 12px;">
+                <select id="pinOption" onchange="updatePinForm()">
                   <option value="">Select...</option>
                   <option value="create">Create a new code</option>
                   <option value="join">Enter a code from my partner</option>
                 </select>
               </div>
-
               <div id="pinInputDiv" style="display: none;">
                 <label for="syncPin">4-Digit Code:</label>
-                <input 
-                  type="text" 
-                  id="syncPin" 
-                  class="pin-input"
-                  placeholder="0000" 
-                  maxlength="4"
-                  inputmode="numeric"
-                  autocomplete="off"
-                >
-                <div class="pin-info">
-                  <div id="pinMessage">Share this code with your partner</div>
-                </div>
+                <input type="text" id="syncPin" class="pin-input" placeholder="0000" maxlength="4" inputmode="numeric" autocomplete="off">
+                <div class="pin-info" id="pinMessage">Share this code with your partner</div>
               </div>
-
               <div class="nav-buttons">
                 <button onclick="goToStep(1)" style="background: var(--color-surface-elevated); color: var(--color-text-primary); border: 1px solid var(--color-border-light);">← Back</button>
                 <button onclick="completeSetup()" style="flex: 2;">Let's Go! 🚀</button>
@@ -237,25 +183,20 @@
         <!-- Header -->
         <header class="header">
           <h1 class="header-title">💕</h1>
-          <div id="syncStatus" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--color-text-secondary); display: none;">
-            <span id="syncIcon">🔄</span>
-          </div>
         </header>
 
         <!-- Page Container -->
         <main class="page-container">
-          <!-- Home Page (Task List) -->
+          <!-- Home Page -->
           <div id="homePage" class="page" style="display: none;">
             <div class="page-header compact">
               <h2>Home</h2>
             </div>
-
-            <div class="filters">
+            <div class="filters home-filters">
               <button class="filter-btn active" onclick="filterHome('all')">All</button>
-              <button class="filter-btn" onclick="filterHome('myTasks')">My Tasks</button>
-              <button class="filter-btn" onclick="filterHome('assigned')">Assigned</button>
+              <button class="filter-btn" onclick="filterHome('open')">Open</button>
+              <button class="filter-btn" onclick="filterHome('completed')">Done</button>
             </div>
-
             <div id="homeTasksList" class="tasks-list"></div>
           </div>
 
@@ -264,13 +205,11 @@
             <div class="page-header compact">
               <h2>My Tasks</h2>
             </div>
-
-            <div class="filters">
+            <div class="filters my-tasks-filters">
               <button class="filter-btn active" onclick="filterMyTasks('all')">All</button>
               <button class="filter-btn" onclick="filterMyTasks('open')">Open</button>
               <button class="filter-btn" onclick="filterMyTasks('completed')">Done</button>
             </div>
-
             <div id="myTasksList" class="tasks-list"></div>
           </div>
 
@@ -279,13 +218,11 @@
             <div class="page-header compact">
               <h2 id="assignedToPartnerTitle">Assigned</h2>
             </div>
-
-            <div class="filters">
+            <div class="filters assigned-filters">
               <button class="filter-btn active" onclick="filterAssignedTasks('all')">All</button>
               <button class="filter-btn" onclick="filterAssignedTasks('open')">Open</button>
               <button class="filter-btn" onclick="filterAssignedTasks('completed')">Done</button>
             </div>
-
             <div id="assignedTasksList" class="tasks-list"></div>
           </div>
 
@@ -318,38 +255,19 @@
                   <div id="settingPartnerName" class="setting-value">-</div>
                 </div>
               </div>
-              <div class="setting-item">
-                <div>
-                  <div class="setting-label">Sync Code</div>
-                  <div id="settingSyncPin" class="setting-value" style="font-family: monospace;">-</div>
-                </div>
-              </div>
               <hr>
               <div class="setting-item">
                 <div>
                   <div class="setting-label">Theme</div>
                 </div>
-                <select id="themeSelector" class="input" onchange="changeTheme(this.value)" style="width: auto; padding: 6px 12px; height: auto; font-size: 14px;">
+                <select id="themeSelector" onchange="changeTheme(this.value)">
                   <option value="his">His (Dark Navy)</option>
                   <option value="her">Her (Warm Peach)</option>
                 </select>
               </div>
               <hr>
-              <label class="setting-item">
-                <div>
-                  <div class="setting-label">Notifications</div>
-                </div>
-                <input type="checkbox" id="notifToggle" checked>
-              </label>
-              <label class="setting-item">
-                <div>
-                  <div class="setting-label">Sound</div>
-                </div>
-                <input type="checkbox" id="soundToggle" checked>
-              </label>
-              <hr>
-              <button class="btn-danger btn-sm full-width" onclick="resetSetup()" style="margin-bottom: 8px;">Switch User</button>
-              <button class="btn-danger btn-sm full-width" onclick="clearAllData()">Clear All Data</button>
+              <button class="btn-danger btn-sm full-width" onclick="switchUser()" style="margin-bottom: 8px;">Switch User</button>
+              <button class="btn-danger btn-sm full-width" onclick="resetAllData()">Clear All Data</button>
             </div>
           </div>
         </main>
@@ -392,7 +310,7 @@
             <button class="modal-close" onclick="closeCreateTaskModal()">✕</button>
           </div>
           <div class="modal-content">
-            <input type="text" id="taskTitle" placeholder="Task title" class="input">
+            <input type="text" id="taskTitle" placeholder="Task title" class="input" required>
             <textarea id="taskDesc" placeholder="Description (optional)" class="input" rows="2"></textarea>
             
             <label style="margin-top: 8px;">Assign to:</label>
@@ -403,7 +321,7 @@
             </select>
 
             <select id="taskCategory" class="input">
-              <option value="">Select category...</option>
+              <option value="">Category</option>
               <option value="Work">🏢 Work</option>
               <option value="Home">🏠 Home</option>
               <option value="Health">💪 Health</option>
@@ -412,20 +330,20 @@
             </select>
 
             <select id="taskPriority" class="input">
-              <option value="low">Low</option>
-              <option value="medium" selected>Medium</option>
-              <option value="high">High</option>
+              <option value="low">Low Priority</option>
+              <option value="medium" selected>Medium Priority</option>
+              <option value="high">High Priority</option>
             </select>
 
             <input type="date" id="taskDueDate" class="input">
 
-            <label>
+            <label style="font-size: 14px; margin-top: 12px;">
               <input type="checkbox" id="taskPrivate" onchange="togglePrivateFields()"> 
-              <span style="margin-left: 8px; font-size: 14px;">Private task</span>
+              <span style="margin-left: 8px;">🔐 Private task</span>
             </label>
 
             <div id="privateFields" style="display: none;">
-              <label>Create Passcode (4 digits):</label>
+              <label>Passcode (4 digits):</label>
               <input type="text" id="taskPasscode" placeholder="0000" maxlength="4" inputmode="numeric" class="input">
             </div>
 
@@ -434,7 +352,7 @@
           </div>
           <div class="modal-footer">
             <button class="btn-secondary" onclick="closeCreateTaskModal()">Cancel</button>
-            <button class="btn-primary" onclick="createTask()">Add</button>
+            <button class="btn-primary" onclick="createTask()">Add Task</button>
           </div>
         </div>
       </div>
@@ -451,7 +369,7 @@
           </div>
           <div class="modal-footer">
             <button class="btn-danger" onclick="deleteDetailTask()">Delete</button>
-            <button id="detailCompleteBtn" class="btn-primary" onclick="completeDetailTask()">Mark Complete</button>
+            <button class="btn-primary" onclick="completeDetailTask()">Mark Complete</button>
           </div>
         </div>
       </div>
