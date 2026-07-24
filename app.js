@@ -1,364 +1,89 @@
 /**
- * Companion App - v3 Complete Redesign
- * Architecture: Google Sheet is Source of Truth
+ * Companion App v3.1 - Clean Rewrite
+ * Focus: Make it ACTUALLY WORK
  * 
- * 3-Step Process:
- * 1. SAVE to Google Sheet (validate first)
- * 2. FETCH fresh data from sheet
- * 3. RENDER updated UI
- * 
- * NO caching. NO polling. NO assumptions.
+ * Core principle: Fetch sheet data → Store in memory → Render to screen
+ * No complexity. No tricks. Just work.
  */
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbzY7xAh9eQHl6idW4W6i--7YIRjp7IbFGQ4a1k3IXxrnry1X1b7lRjmpUGMWpkUy1NCQg/exec';
 
-// ============================================================================
-// STORAGE - Single Source of Truth: Google Sheet
-// ============================================================================
+// Simple global state
+let currentUser = null;
+let allTasks = [];
+let currentPage = 'home';
 
-const StorageManager = {
-  // localStorage keys
-  KEYS: {
-    USER: 'companion-user',
-    PHOTO_PREFIX: 'photo_'
-  },
-
-  // Get current user from localStorage
-  getUser() {
-    const stored = localStorage.getItem(this.KEYS.USER);
-    if (!stored) return null;
-    try {
-      return JSON.parse(stored);
-    } catch (e) {
-      console.error('❌ Failed to parse user from localStorage:', e);
-      return null;
-    }
-  },
-
-  // Set user (only on initial setup)
-  setUser(userId, userName, partnerUserId, partnerName, theme = 'his') {
-    const user = {
-      userId: userId,
-      userName: userName,
-      partnerUserId: partnerUserId,
-      partnerName: partnerName,
-      theme: theme
-    };
-    localStorage.setItem(this.KEYS.USER, JSON.stringify(user));
-    console.log('✅ User stored:', user);
-    return user;
-  },
-
-  // Store photo in localStorage
-  storePhoto(taskId, base64Data) {
-    try {
-      const key = this.KEYS.PHOTO_PREFIX + taskId;
-      localStorage.setItem(key, base64Data);
-      console.log('📸 Photo stored locally:', key);
-      return true;
-    } catch (e) {
-      console.error('❌ Photo storage failed (might be too large):', e);
-      return false;
-    }
-  },
-
-  // Get photo from localStorage
-  getPhoto(taskId) {
-    try {
-      const key = this.KEYS.PHOTO_PREFIX + taskId;
-      return localStorage.getItem(key);
-    } catch (e) {
-      console.error('❌ Photo retrieval failed:', e);
-      return null;
-    }
-  },
-
-  // Delete photo
-  deletePhoto(taskId) {
-    try {
-      const key = this.KEYS.PHOTO_PREFIX + taskId;
-      localStorage.removeItem(key);
-    } catch (e) {
-      console.error('⚠️ Photo deletion failed:', e);
-    }
-  },
-
-  // Clear all app data (reset app)
-  clearAll() {
-    if (confirm('⚠️ Clear all data and reset app? This cannot be undone.')) {
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (key.startsWith('companion-')) {
-          localStorage.removeItem(key);
-        }
-      });
-      console.log('🗑️ All app data cleared');
-      location.reload();
-    }
-  }
-};
-
-// ============================================================================
-// STATE MANAGEMENT - In-Memory Only (Never Trusted as Source of Truth)
-// ============================================================================
-
-const AppState = {
-  user: null,
-  tasks: [],
-  currentPage: 'home',
-  selectedTaskId: null,
-  pendingPasscodeTaskId: null,
-
-  init() {
-    this.user = StorageManager.getUser();
-    console.log('🚀 App initialized with user:', this.user);
-  },
-
-  // Clear all in-memory state (when switching users)
-  clearTasks() {
-    this.tasks = [];
-    console.log('🧹 Tasks cleared from memory');
-  },
-
-  // Update tasks from sheet (source of truth)
-  setTasksFromSheet(sheetData) {
-    if (!Array.isArray(sheetData)) {
-      console.error('❌ Invalid tasks data:', sheetData);
-      this.tasks = [];
-      return;
-    }
-    this.tasks = sheetData;
-    console.log('📥 Tasks updated from sheet:', this.tasks.length, 'tasks');
-  },
-
-  // Get tasks assigned to current user
-  getMyTasks(filterStatus = 'all') {
-    let filtered = this.tasks.filter(t => t.AssignedTo === this.user.userId);
-    
-    if (filterStatus === 'open') {
-      filtered = filtered.filter(t => t.Status !== 'completed');
-    } else if (filterStatus === 'completed') {
-      filtered = filtered.filter(t => t.Status === 'completed');
-    }
-    
-    return filtered;
-  },
-
-  // Get tasks assigned to partner (created by current user, assigned to partner)
-  getAssignedToPartner(filterStatus = 'all') {
-    let filtered = this.tasks.filter(
-      t => t.CreatedBy === this.user.userId && t.AssignedTo === this.user.partnerUserId
-    );
-    
-    if (filterStatus === 'open') {
-      filtered = filtered.filter(t => t.Status !== 'completed');
-    } else if (filterStatus === 'completed') {
-      filtered = filtered.filter(t => t.Status === 'completed');
-    }
-    
-    return filtered;
-  },
-
-  // Get all tasks
-  getAllTasks(filterStatus = 'all') {
-    let filtered = this.tasks;
-    
-    if (filterStatus === 'open') {
-      filtered = filtered.filter(t => t.Status !== 'completed');
-    } else if (filterStatus === 'completed') {
-      filtered = filtered.filter(t => t.Status === 'completed');
-    }
-    
-    return filtered;
-  },
-
-  getTask(taskId) {
-    return this.tasks.find(t => t.TaskID === taskId);
-  }
-};
-
-// ============================================================================
-// API LAYER - Direct Sheet Communication
-// ============================================================================
-
-const API = {
-  async call(action, payload = {}) {
-    try {
-      console.log(`📤 API Call: ${action}`, payload);
-      
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action, ...payload })
-      });
-
-      const result = await response.json();
-      console.log(`📥 API Response: ${action}`, result);
-      
-      return result;
-    } catch (error) {
-      console.error(`❌ API Error (${action}):`, error);
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Fetch all tasks from sheet (always fresh)
-  async getTasks() {
-    return this.call('getTasks');
-  },
-
-  // Create task in sheet
-  async createTask(taskData) {
-    return this.call('createTask', taskData);
-  },
-
-  // Update task in sheet
-  async updateTask(taskId, updates) {
-    return this.call('updateTask', { TaskID: taskId, ...updates });
-  },
-
-  // Delete task (soft delete - set DeletedAt)
-  async deleteTask(taskId) {
-    return this.call('deleteTask', { TaskID: taskId });
-  }
-};
-
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 Companion App v3 Initializing...');
-
-  // Register service worker
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-      .then(() => console.log('✅ Service Worker registered'))
-      .catch(err => console.error('❌ SW error:', err));
-  }
-
-  // Hide loading screen
-  setTimeout(() => {
-    document.querySelector('.app-loading').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-
-    // Check if user is set up
-    AppState.init();
-    if (!AppState.user) {
-      showSetupWizard();
-    } else {
+  console.log('🚀 App Starting...');
+  
+  // Check if user exists
+  const stored = localStorage.getItem('companion-user');
+  if (stored) {
+    try {
+      currentUser = JSON.parse(stored);
+      console.log('✅ User loaded:', currentUser.userName);
       showMainApp();
-      loadTasksFromSheet(); // Fetch fresh data
+      updateUILabels();
+      loadAllTasks();
+    } catch (e) {
+      console.error('❌ Error loading user:', e);
+      showSetupWizard();
     }
-  }, 500);
-
-  // Setup touch gestures
-  setupTouchGestures();
+  } else {
+    console.log('📋 No user found, showing setup');
+    showSetupWizard();
+  }
 });
 
 // ============================================================================
-// SETUP WIZARD
+// SETUP
 // ============================================================================
 
 function showSetupWizard() {
   document.getElementById('setupWizard').style.display = 'flex';
   document.getElementById('mainApp').style.display = 'none';
-  goToStep(1);
 }
 
-function goToStep(stepNumber) {
-  document.getElementById('setupStep1').classList.remove('active');
-  document.getElementById('setupStep2').classList.remove('active');
-
-  if (stepNumber === 1) {
-    document.getElementById('setupStep1').classList.add('active');
-    setTimeout(() => document.getElementById('yourName').focus(), 100);
-  } else if (stepNumber === 2) {
-    const yourName = document.getElementById('yourName').value.trim();
-    const partnerName = document.getElementById('partnerName').value.trim();
-
-    if (!yourName || !partnerName) {
-      alert('Please enter both names');
-      return;
-    }
-
-    document.getElementById('setupStep2').classList.add('active');
-    updatePinForm();
-  }
+function goToStep(step) {
+  document.querySelectorAll('.setup-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('setupStep' + step).classList.add('active');
 }
 
-function updatePinForm() {
-  const pinOption = document.getElementById('pinOption').value;
-  const pinInputDiv = document.getElementById('pinInputDiv');
-  const pinInput = document.getElementById('syncPin');
-  const pinMessage = document.getElementById('pinMessage');
-
-  if (pinOption === 'create') {
-    const newPin = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-    pinInput.value = newPin;
-    pinInput.disabled = true;
-    pinMessage.textContent = '👆 Share this code with your partner';
-    pinInputDiv.style.display = 'block';
-  } else if (pinOption === 'join') {
-    pinInput.value = '';
-    pinInput.disabled = false;
-    pinInput.focus();
-    pinMessage.textContent = 'Enter the code your partner created';
-    pinInputDiv.style.display = 'block';
-  } else {
-    pinInputDiv.style.display = 'none';
-  }
-}
-
-async function completeSetup() {
+function completeSetup() {
   const yourName = document.getElementById('yourName').value.trim();
   const partnerName = document.getElementById('partnerName').value.trim();
-  const pinOption = document.getElementById('pinOption').value;
   const syncPin = document.getElementById('syncPin').value.trim();
 
-  if (!yourName || !partnerName) {
-    alert('Please enter both names');
+  if (!yourName || !partnerName || !syncPin) {
+    alert('Please fill all fields');
     return;
   }
 
-  if (!pinOption) {
-    alert('Please select how to sync');
-    return;
-  }
+  // Determine if user1 or user2 based on sync pin
+  const isCreator = document.getElementById('pinOption').value === 'create';
+  const userId = isCreator ? 'user1' : 'user2';
+  const partnerId = isCreator ? 'user2' : 'user1';
+  const theme = isCreator ? 'his' : 'her';
 
-  if (!syncPin || syncPin.length !== 4 || !/^\d{4}$/.test(syncPin)) {
-    alert('Please enter a valid 4-digit code');
-    return;
-  }
+  currentUser = {
+    userId: userId,
+    userName: yourName,
+    partnerId: partnerId,
+    partnerName: partnerName,
+    theme: theme
+  };
 
-  console.log(`✅ Setup: ${yourName} & ${partnerName} with PIN: ${syncPin}`);
+  localStorage.setItem('companion-user', JSON.stringify(currentUser));
+  console.log('✅ Setup complete:', currentUser);
 
-  // Determine user role (first user is user1, second is user2)
-  const userId = pinOption === 'create' ? 'user1' : 'user2';
-  const partnerUserId = userId === 'user1' ? 'user2' : 'user1';
-  const theme = userId === 'user1' ? 'his' : 'her';
-
-  // Save user to localStorage
-  StorageManager.setUser(
-    userId,
-    yourName,
-    partnerUserId,
-    partnerName,
-    theme
-  );
-
-  AppState.init();
   showMainApp();
-  updateUI();
-  loadTasksFromSheet();
-  goToPage('home');
+  updateUILabels();
+  loadAllTasks();
 }
 
 // ============================================================================
-// MAIN APP DISPLAY
+// MAIN APP
 // ============================================================================
 
 function showMainApp() {
@@ -367,436 +92,205 @@ function showMainApp() {
   applyTheme();
 }
 
-function updateUI() {
-  if (!AppState.user) return;
-
-  // Update settings display
-  document.getElementById('settingYourName').textContent = AppState.user.userName || '-';
-  document.getElementById('settingPartnerName').textContent = AppState.user.partnerName || '-';
-
-  // Update theme selector
-  document.getElementById('themeSelector').value = AppState.user.theme;
-
-  // Update partner name in "Assigned to Partner" label
-  const navAssignedLabel = document.getElementById('navAssignedLabel');
-  if (navAssignedLabel) {
-    navAssignedLabel.textContent = AppState.user.partnerName ? `${AppState.user.partnerName}'s` : 'Assigned';
-  }
-
-  const assignToPartnerOption = document.getElementById('assignToPartnerOption');
-  if (assignToPartnerOption) {
-    assignToPartnerOption.textContent = AppState.user.partnerName || 'Partner';
-  }
-
-  console.log('✅ UI updated for:', AppState.user.userName);
+function updateUILabels() {
+  if (!currentUser) return;
+  
+  document.getElementById('settingYourName').textContent = currentUser.userName;
+  document.getElementById('settingPartnerName').textContent = currentUser.partnerName;
+  document.getElementById('themeSelector').value = currentUser.theme;
+  
+  const partnerLabel = document.getElementById('navAssignedLabel');
+  if (partnerLabel) partnerLabel.textContent = currentUser.partnerName + "'s";
+  
+  const assignOption = document.getElementById('assignToPartnerOption');
+  if (assignOption) assignOption.textContent = currentUser.partnerName;
 }
 
 function applyTheme() {
-  const body = document.body;
-  body.classList.remove('theme-his', 'theme-her');
-  body.classList.add(`theme-${AppState.user.theme}`);
-  console.log('🎨 Theme applied:', AppState.user.theme);
+  document.body.classList.remove('theme-his', 'theme-her');
+  document.body.classList.add('theme-' + currentUser.theme);
 }
 
 // ============================================================================
-// PAGE NAVIGATION
+// LOAD TASKS - THIS IS THE MOST IMPORTANT FUNCTION
+// ============================================================================
+
+async function loadAllTasks() {
+  console.log('📥 Loading tasks from sheet...');
+  
+  try {
+    // Fetch from API
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'getTasks' })
+    });
+
+    const result = await response.json();
+    console.log('📡 API Response:', result);
+
+    if (!result.success || !result.data || !Array.isArray(result.data)) {
+      console.error('❌ Invalid API response:', result);
+      allTasks = [];
+      renderCurrentPage();
+      return;
+    }
+
+    // Store tasks in memory
+    allTasks = result.data;
+    console.log('✅ Tasks loaded:', allTasks.length, 'tasks');
+    console.log('   Tasks:', allTasks.map(t => ({ id: t.TaskID, title: t.Title, assigned: t.AssignedTo })));
+
+    // Render current page
+    renderCurrentPage();
+
+  } catch (error) {
+    console.error('❌ Error loading tasks:', error);
+    alert('Error loading tasks: ' + error.message);
+  }
+}
+
+// ============================================================================
+// NAVIGATE PAGES
 // ============================================================================
 
 function goToPage(pageName) {
-  console.log('📄 goToPage called:', pageName);
+  currentPage = pageName;
   
   // Hide all pages
-  document.querySelectorAll('.page').forEach(page => {
-    page.style.display = 'none';
-  });
-
-  // Show selected page
-  const pageId = `${pageName}Page`;
-  const pageElement = document.getElementById(pageId);
-  console.log('   - Looking for page element with id:', pageId);
-  console.log('   - Found:', !!pageElement);
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
   
-  if (pageElement) {
-    pageElement.style.display = 'block';
-    console.log('   - Page displayed');
-  } else {
-    console.error('   ❌ Page element not found!');
-  }
+  // Show current page
+  const pageEl = document.getElementById(pageName + 'Page');
+  if (pageEl) pageEl.style.display = 'block';
 
-  // Update nav active state
-  document.querySelectorAll('.nav-tab').forEach(tab => {
-    tab.classList.remove('active');
-  });
-  const activeTab = document.querySelector(`.nav-tab[data-page="${pageName}"]`);
-  if (activeTab) {
-    activeTab.classList.add('active');
-  }
+  // Update nav
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.nav-tab[data-page="${pageName}"]`)?.classList.add('active');
 
-  AppState.currentPage = pageName;
-
-  // Render page content
-  if (pageName === 'home') renderHomePageTasks();
-  if (pageName === 'myTasks') renderMyTasks();
-  if (pageName === 'assignedToPartner') renderAssignedTasks();
+  // Render
+  renderCurrentPage();
 }
 
 // ============================================================================
-// TASK LOADING - FETCH FRESH FROM SHEET (Step 1 of 3-Step Process)
+// RENDER - THIS IS WHERE TASKS APPEAR ON SCREEN
 // ============================================================================
-
-async function loadTasksFromSheet() {
-  console.log('⏳ [STEP 1] Fetching tasks from sheet...');
-  showLoadingIndicator(true);
-
-  try {
-    console.log('📡 Making API call to getTasks...');
-    const result = await API.getTasks();
-
-    console.log('📥 API Response:', result);
-    console.log('   - success:', result.success);
-    console.log('   - data length:', result.data ? result.data.length : 'NO DATA');
-    
-    if (!result.success) {
-      console.error('❌ API returned success=false:', result.error);
-      showError('Failed to load tasks: ' + (result.error || 'Unknown error'));
-      showLoadingIndicator(false);
-      return;
-    }
-
-    if (!result.data) {
-      console.error('❌ API returned no data');
-      showError('No data returned from API');
-      showLoadingIndicator(false);
-      return;
-    }
-
-    if (!Array.isArray(result.data)) {
-      console.error('❌ API data is not an array:', typeof result.data);
-      showError('Invalid data format from API');
-      showLoadingIndicator(false);
-      return;
-    }
-
-    console.log('✅ API returned valid data, updating AppState...');
-    AppState.setTasksFromSheet(result.data);
-    
-    console.log('📊 AppState.tasks updated:');
-    console.log('   - Total tasks:', AppState.tasks.length);
-    console.log('   - Tasks:', AppState.tasks.map(t => ({ id: t.TaskID, title: t.Title, assigned: t.AssignedTo })));
-    
-    console.log('🎨 [STEP 3] Rendering current page:', AppState.currentPage);
-    renderCurrentPage();
-    
-    console.log('✅ Tasks loaded and rendered successfully');
-    showSyncIndicator();
-  } catch (error) {
-    console.error('❌ Load tasks error:', error);
-    console.error('   Stack:', error.stack);
-    showError('Connection error: ' + error.message);
-  } finally {
-    showLoadingIndicator(false);
-  }
-}
 
 function renderCurrentPage() {
-  console.log('🎨 renderCurrentPage called for:', AppState.currentPage);
-  console.log('   - AppState.tasks.length:', AppState.tasks.length);
+  console.log('🎨 Rendering page:', currentPage);
   
-  if (AppState.currentPage === 'home') {
-    console.log('   - Rendering home page...');
-    renderHomePageTasks();
-  }
-  if (AppState.currentPage === 'myTasks') {
-    console.log('   - Rendering my tasks page...');
-    renderMyTasks();
-  }
-  if (AppState.currentPage === 'assignedToPartner') {
-    console.log('   - Rendering assigned tasks page...');
-    renderAssignedTasks();
-  }
+  if (currentPage === 'home') renderHome();
+  if (currentPage === 'myTasks') renderMyTasks();
+  if (currentPage === 'assignedToPartner') renderAssignedTasks();
 }
 
-// ============================================================================
-// TASK RENDERING
-// ============================================================================
-
-function renderHomePageTasks() {
-  console.log('🏠 renderHomePageTasks called');
-  const filterStatus = document.querySelector('.home-filters .filter-btn.active')?.textContent.toLowerCase() || 'all';
-  console.log('   - Filter status:', filterStatus);
-  
-  let tasks = AppState.getAllTasks(filterStatus === 'all' ? 'all' : filterStatus === 'open' ? 'open' : 'completed');
-  console.log('   - Filtered tasks count:', tasks.length);
-  console.log('   - Tasks:', tasks.map(t => ({ id: t.TaskID, title: t.Title })));
-
+function renderHome() {
   const container = document.getElementById('homeTasksList');
   if (!container) {
-    console.error('   ❌ homeTasksList container not found!');
+    console.error('❌ homeTasksList not found!');
     return;
   }
-  
+
+  const filterStatus = document.querySelector('.home-filters .filter-btn.active')?.textContent.toLowerCase() || 'all';
+  let tasks = filterTasks(allTasks, filterStatus);
+
+  console.log('🏠 Rendering home:', tasks.length, 'tasks with filter:', filterStatus);
+
   if (tasks.length === 0) {
-    console.log('   - No tasks, showing empty state');
-    container.innerHTML = `
-      <div class="empty-state-compact">
-        <div class="empty-state-icon">✨</div>
-        <div class="empty-state-title">No tasks</div>
-      </div>
-    `;
+    container.innerHTML = '<div class="empty-state-compact"><div class="empty-state-icon">✨</div><div class="empty-state-title">No tasks</div></div>';
     return;
   }
 
   container.innerHTML = tasks.map(task => renderTaskCard(task)).join('');
-  attachTaskCardListeners();
+  attachTaskListeners();
 }
 
 function renderMyTasks() {
-  const filterStatus = document.querySelector('.my-tasks-filters .filter-btn.active')?.textContent.toLowerCase() || 'all';
-  let tasks = AppState.getMyTasks(filterStatus === 'all' ? 'all' : filterStatus === 'open' ? 'open' : 'completed');
-
   const container = document.getElementById('myTasksList');
-  
+  if (!container) {
+    console.error('❌ myTasksList not found!');
+    return;
+  }
+
+  const filterStatus = document.querySelector('.my-tasks-filters .filter-btn.active')?.textContent.toLowerCase() || 'all';
+  let tasks = allTasks.filter(t => t.AssignedTo === currentUser.userId);
+  tasks = filterTasks(tasks, filterStatus);
+
+  console.log('📋 Rendering my tasks:', tasks.length, 'tasks');
+
   if (tasks.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state-compact">
-        <div class="empty-state-icon">📭</div>
-        <div class="empty-state-title">No tasks</div>
-      </div>
-    `;
+    container.innerHTML = '<div class="empty-state-compact"><div class="empty-state-icon">📭</div><div class="empty-state-title">No tasks</div></div>';
     return;
   }
 
   container.innerHTML = tasks.map(task => renderTaskCard(task)).join('');
-  attachTaskCardListeners();
+  attachTaskListeners();
 }
 
 function renderAssignedTasks() {
-  const filterStatus = document.querySelector('.assigned-filters .filter-btn.active')?.textContent.toLowerCase() || 'all';
-  let tasks = AppState.getAssignedToPartner(filterStatus === 'all' ? 'all' : filterStatus === 'open' ? 'open' : 'completed');
-
   const container = document.getElementById('assignedTasksList');
-  
+  if (!container) {
+    console.error('❌ assignedTasksList not found!');
+    return;
+  }
+
+  const filterStatus = document.querySelector('.assigned-filters .filter-btn.active')?.textContent.toLowerCase() || 'all';
+  let tasks = allTasks.filter(t => t.CreatedBy === currentUser.userId && t.AssignedTo === currentUser.partnerId);
+  tasks = filterTasks(tasks, filterStatus);
+
+  console.log('👥 Rendering assigned tasks:', tasks.length, 'tasks');
+
   if (tasks.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state-compact">
-        <div class="empty-state-icon">🎯</div>
-        <div class="empty-state-title">No tasks assigned</div>
-      </div>
-    `;
+    container.innerHTML = '<div class="empty-state-compact"><div class="empty-state-icon">🎯</div><div class="empty-state-title">No tasks assigned</div></div>';
     return;
   }
 
   container.innerHTML = tasks.map(task => renderTaskCard(task)).join('');
-  attachTaskCardListeners();
+  attachTaskListeners();
+}
+
+function filterTasks(tasks, status) {
+  if (status === 'open' || status === 'open') {
+    return tasks.filter(t => t.Status !== 'completed');
+  }
+  if (status === 'done' || status === 'completed') {
+    return tasks.filter(t => t.Status === 'completed');
+  }
+  return tasks;
 }
 
 function renderTaskCard(task) {
   const isCompleted = task.Status === 'completed';
   const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true;
-  const category = task.Category || 'Task';
   
   return `
-    <div class="task-card ${isCompleted ? 'completed' : ''}" data-task-id="${escapeHtml(task.TaskID)}">
+    <div class="task-card ${isCompleted ? 'completed' : ''}" onclick="clickTask('${task.TaskID}')">
       <div class="task-info">
         <div class="task-title ${isCompleted ? 'line-through' : ''}">${escapeHtml(task.Title || 'Untitled')}</div>
         <div class="task-meta">
-          ${isPrivate ? '🔐' : ''}
-          ${category ? `<span>${escapeHtml(category)}</span>` : ''}
-          ${task.DueDate ? `<span>📅 ${escapeHtml(task.DueDate)}</span>` : ''}
+          ${isPrivate ? '🔐 ' : ''}
+          ${task.Category ? '<span>' + escapeHtml(task.Category) + '</span>' : ''}
+          ${task.DueDate ? '<span>📅 ' + escapeHtml(task.DueDate) + '</span>' : ''}
         </div>
       </div>
     </div>
   `;
 }
 
-function attachTaskCardListeners() {
+function attachTaskListeners() {
   document.querySelectorAll('.task-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const taskId = card.dataset.taskId;
-      handleTaskClick(taskId);
+    card.addEventListener('click', function(e) {
+      e.stopPropagation();
     });
   });
 }
 
-// ============================================================================
-// TASK INTERACTIONS - 3-STEP PROCESS
-// ============================================================================
-
-async function handleTaskClick(taskId) {
-  const task = AppState.getTask(taskId);
-  if (!task) {
-    console.error('❌ Task not found:', taskId);
-    return;
-  }
-
-  // Check if private task needs passcode
-  const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true;
-  const hasPasscode = (task.ContentHash || '').trim().length > 0;
-
-  console.log('🔍 Task clicked:', { taskId, isPrivate, hasPasscode, contentHash: task.ContentHash });
-
-  if (isPrivate && hasPasscode) {
-    AppState.pendingPasscodeTaskId = taskId;
-    document.getElementById('passcodeModal').style.display = 'flex';
-    setTimeout(() => document.getElementById('passcodeInput').focus(), 100);
-  } else {
-    showTaskDetails(task);
-  }
-}
-
-function showTaskDetails(task) {
-  AppState.selectedTaskId = task.TaskID;
-  document.getElementById('detailTaskTitle').textContent = escapeHtml(task.Title);
-
-  // Check for photo in localStorage
-  const photo = StorageManager.getPhoto(task.TaskID);
-  const hasPhoto = photo && photo.length > 0;
-
-  const html = `
-    <div class="task-detail-section">
-      <h3>Description</h3>
-      <p>${escapeHtml(task.Description) || 'No description'}</p>
-    </div>
-
-    ${hasPhoto ? `
-      <div class="task-detail-section">
-        <h3>📸 Photo</h3>
-        <img src="${photo}" style="width: 100%; max-height: 300px; border-radius: 8px; object-fit: cover; margin-top: 8px;" alt="Task photo">
-      </div>
-    ` : ''}
-
-    <div class="task-detail-section">
-      <h3>Details</h3>
-      <div class="detail-row">
-        <span class="detail-label">Status:</span>
-        <span class="detail-value">${task.Status === 'completed' ? '✅ Completed' : '⏳ Open'}</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">Priority:</span>
-        <span class="detail-value">${escapeHtml(task.Priority || 'Medium')}</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">Category:</span>
-        <span class="detail-value">${escapeHtml(task.Category || 'Task')}</span>
-      </div>
-      ${task.DueDate ? `
-        <div class="detail-row">
-          <span class="detail-label">Due Date:</span>
-          <span class="detail-value">${escapeHtml(task.DueDate)}</span>
-        </div>
-      ` : ''}
-    </div>
-  `;
-
-  document.getElementById('detailTaskContent').innerHTML = html;
-  document.getElementById('taskDetailsModal').style.display = 'flex';
-}
-
-function closeTaskDetailsModal() {
-  document.getElementById('taskDetailsModal').style.display = 'none';
-  AppState.selectedTaskId = null;
-}
-
-async function completeDetailTask() {
-  if (!AppState.selectedTaskId) return;
-
-  showLoadingIndicator(true);
-  const task = AppState.getTask(AppState.selectedTaskId);
-  const newStatus = task.Status === 'completed' ? 'open' : 'completed';
-
-  try {
-    // STEP 2: SAVE to sheet
-    const result = await API.updateTask(AppState.selectedTaskId, { Status: newStatus });
-
-    if (result.success) {
-      // STEP 1: FETCH fresh data
-      await loadTasksFromSheet();
-      // STEP 3: RENDER (done by loadTasksFromSheet)
-      closeTaskDetailsModal();
-      showSuccess('Task updated');
-    } else {
-      showError('Failed to update task: ' + (result.error || 'Unknown error'));
-    }
-  } catch (error) {
-    showError('Error: ' + error.message);
-  } finally {
-    showLoadingIndicator(false);
-  }
-}
-
-async function deleteDetailTask() {
-  if (!AppState.selectedTaskId) return;
-  if (!confirm('Delete this task?')) return;
-
-  showLoadingIndicator(true);
-
-  try {
-    // STEP 2: SAVE to sheet (soft delete)
-    const result = await API.deleteTask(AppState.selectedTaskId);
-
-    if (result.success) {
-      // Delete photo from localStorage
-      StorageManager.deletePhoto(AppState.selectedTaskId);
-
-      // STEP 1: FETCH fresh data
-      await loadTasksFromSheet();
-      // STEP 3: RENDER (done by loadTasksFromSheet)
-      closeTaskDetailsModal();
-      showSuccess('Task deleted');
-    } else {
-      showError('Failed to delete task: ' + (result.error || 'Unknown error'));
-    }
-  } catch (error) {
-    showError('Error: ' + error.message);
-  } finally {
-    showLoadingIndicator(false);
-  }
+function escapeHtml(text) {
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  return String(text).replace(/[&<>"']/g, m => map[m]);
 }
 
 // ============================================================================
-// PASSCODE VERIFICATION
-// ============================================================================
-
-function verifyPasscode() {
-  const enteredPasscode = document.getElementById('passcodeInput').value.trim();
-
-  if (!enteredPasscode || enteredPasscode.length !== 4) {
-    alert('Please enter a 4-digit passcode');
-    return;
-  }
-
-  const task = AppState.getTask(AppState.pendingPasscodeTaskId);
-  if (!task) {
-    alert('Task not found');
-    return;
-  }
-
-  const storedPasscode = (task.ContentHash || '').trim();
-
-  console.log('🔐 Passcode verification:', {
-    entered: enteredPasscode,
-    stored: storedPasscode,
-    match: enteredPasscode === storedPasscode
-  });
-
-  if (enteredPasscode !== storedPasscode) {
-    alert('❌ Incorrect passcode');
-    document.getElementById('passcodeInput').value = '';
-    return;
-  }
-
-  closePasscodeModal();
-  showTaskDetails(task);
-}
-
-function closePasscodeModal() {
-  document.getElementById('passcodeModal').style.display = 'none';
-  document.getElementById('passcodeInput').value = '';
-  AppState.pendingPasscodeTaskId = null;
-}
-
-// ============================================================================
-// TASK CREATION - 3-STEP PROCESS
+// CREATE TASK
 // ============================================================================
 
 function openCreateTaskModal() {
@@ -814,320 +308,269 @@ function closeCreateTaskModal() {
   document.getElementById('taskDueDate').value = '';
   document.getElementById('taskPrivate').checked = false;
   document.getElementById('taskPasscode').value = '';
-  document.getElementById('taskPhoto').value = '';
-  document.getElementById('privateFields').style.display = 'none';
-}
-
-function togglePrivateFields() {
-  const isPrivate = document.getElementById('taskPrivate').checked;
-  document.getElementById('privateFields').style.display = isPrivate ? 'block' : 'none';
 }
 
 async function createTask() {
   const title = document.getElementById('taskTitle').value.trim();
   const description = document.getElementById('taskDesc').value.trim();
   const assignedToValue = document.getElementById('taskAssignedTo').value;
-  const category = document.getElementById('taskCategory').value || 'Together';
+  const category = document.getElementById('taskCategory').value || '';
   const priority = document.getElementById('taskPriority').value || 'medium';
-  const dueDate = document.getElementById('taskDueDate').value;
+  const dueDate = document.getElementById('taskDueDate').value || '';
   const isPrivate = document.getElementById('taskPrivate').checked;
   const passcode = document.getElementById('taskPasscode').value.trim();
-  const photoInput = document.getElementById('taskPhoto');
 
-  // VALIDATE
-  if (!title) {
-    alert('Please enter a task title');
-    return;
-  }
+  if (!title) { alert('Enter task title'); return; }
+  if (!assignedToValue) { alert('Select who this is for'); return; }
+  if (isPrivate && !passcode) { alert('Enter 4-digit passcode'); return; }
 
-  if (!assignedToValue) {
-    alert('Please select who this is for');
-    return;
-  }
+  const assignedToId = assignedToValue === 'me' ? currentUser.userId : currentUser.partnerId;
 
-  if (isPrivate && !passcode) {
-    alert('Please enter a 4-digit passcode for private task');
-    return;
-  }
-
-  if (isPrivate && (passcode.length !== 4 || !/^\d{4}$/.test(passcode))) {
-    alert('Passcode must be exactly 4 digits');
-    return;
-  }
-
-  showLoadingIndicator(true);
+  console.log('📝 Creating task:');
+  console.log('   Title:', title);
+  console.log('   AssignedTo:', assignedToId);
+  console.log('   CreatedBy:', currentUser.userId);
 
   try {
-    const assignedToId = assignedToValue === 'me' ? AppState.user.userId : AppState.user.partnerUserId;
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'createTask',
+        Title: title,
+        Description: description,
+        AssignedTo: assignedToId,
+        CreatedBy: currentUser.userId,
+        Category: category,
+        Priority: priority,
+        DueDate: dueDate,
+        Status: 'open',
+        IsPrivate: isPrivate ? 'TRUE' : 'FALSE',
+        ContentHash: isPrivate ? passcode : ''
+      })
+    });
 
-    // STEP 2: SAVE to sheet
-    const taskData = {
-      Title: title,
-      Description: description,
-      AssignedTo: assignedToId,
-      CreatedBy: AppState.user.userId,
-      Category: category,
-      Priority: priority,
-      DueDate: dueDate,
-      Status: 'open',
-      IsPrivate: isPrivate ? 'TRUE' : 'FALSE',
-      ContentHash: isPrivate ? passcode.trim() : ''
-    };
-
-    console.log('📝 Creating task:', taskData);
-
-    const result = await API.createTask(taskData);
-
-    console.log('📥 Create task response:', result);
-    console.log('   - success:', result.success);
-    console.log('   - data:', result.data);
+    const result = await response.json();
+    console.log('📡 Create response:', result);
 
     if (!result.success) {
-      console.error('❌ Create task failed:', result.error);
-      showError('Failed to create task: ' + (result.error || 'Unknown error'));
+      alert('Error: ' + (result.error || 'Unknown error'));
       return;
     }
 
-    console.log('✅ Task created in sheet, now storing photo...');
-
-    // Store photo if exists (in localStorage, NOT in sheet)
-    if (photoInput.files && photoInput.files[0]) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        console.log('📸 Storing photo for task:', result.data.TaskID);
-        StorageManager.storePhoto(result.data.TaskID, e.target.result);
-      };
-      reader.readAsDataURL(photoInput.files[0]);
-    }
-
-    console.log('⏳ [STEP 2] FETCHING fresh data from sheet...');
-    await loadTasksFromSheet();
-    console.log('✅ [STEP 3] RENDERING complete');
-
+    console.log('✅ Task created in sheet');
     closeCreateTaskModal();
-    showSuccess('Task created!');
+
+    // CRITICAL: Reload tasks from sheet
+    console.log('⏳ Reloading all tasks from sheet...');
+    await loadAllTasks();
+
+    alert('Task created!');
+
   } catch (error) {
-    showError('Error: ' + error.message);
-  } finally {
-    showLoadingIndicator(false);
+    console.error('❌ Create error:', error);
+    alert('Error: ' + error.message);
   }
 }
 
 // ============================================================================
-// SETTINGS & USER MANAGEMENT
+// TASK ACTIONS
+// ============================================================================
+
+function clickTask(taskId) {
+  const task = allTasks.find(t => t.TaskID === taskId);
+  if (!task) return;
+
+  const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true;
+  const hasPasscode = (task.ContentHash || '').trim().length > 0;
+
+  if (isPrivate && hasPasscode) {
+    promptPasscode(taskId);
+  } else {
+    showTaskDetails(task);
+  }
+}
+
+function promptPasscode(taskId) {
+  const passcode = prompt('🔐 Enter passcode (4 digits):');
+  if (!passcode) return;
+
+  const task = allTasks.find(t => t.TaskID === taskId);
+  if (!task) return;
+
+  if (passcode.trim() !== (task.ContentHash || '').trim()) {
+    alert('❌ Incorrect passcode');
+    return;
+  }
+
+  showTaskDetails(task);
+}
+
+function showTaskDetails(task) {
+  document.getElementById('detailTaskTitle').textContent = task.Title;
+  
+  let html = `
+    <div class="task-detail-section">
+      <h3>Description</h3>
+      <p>${escapeHtml(task.Description) || 'No description'}</p>
+    </div>
+    <div class="task-detail-section">
+      <h3>Details</h3>
+      <div class="detail-row">
+        <span class="detail-label">Status:</span>
+        <span class="detail-value">${task.Status === 'completed' ? '✅ Completed' : '⏳ Open'}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Priority:</span>
+        <span class="detail-value">${escapeHtml(task.Priority || 'Medium')}</span>
+      </div>
+      ${task.Category ? `
+        <div class="detail-row">
+          <span class="detail-label">Category:</span>
+          <span class="detail-value">${escapeHtml(task.Category)}</span>
+        </div>
+      ` : ''}
+      ${task.DueDate ? `
+        <div class="detail-row">
+          <span class="detail-label">Due Date:</span>
+          <span class="detail-value">${escapeHtml(task.DueDate)}</span>
+        </div>
+      ` : ''}
+    </div>
+  `;
+
+  document.getElementById('detailTaskContent').innerHTML = html;
+  
+  const completeBtn = document.getElementById('completeDetailBtn');
+  completeBtn.textContent = task.Status === 'completed' ? 'Mark as Open' : 'Mark Complete';
+  completeBtn.onclick = () => completeTask(task.TaskID);
+
+  document.getElementById('taskDetailsModal').style.display = 'flex';
+}
+
+function closeTaskDetailsModal() {
+  document.getElementById('taskDetailsModal').style.display = 'none';
+}
+
+async function completeTask(taskId) {
+  const task = allTasks.find(t => t.TaskID === taskId);
+  if (!task) return;
+
+  const newStatus = task.Status === 'completed' ? 'open' : 'completed';
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'updateTask',
+        TaskID: taskId,
+        Status: newStatus
+      })
+    });
+
+    const result = await response.json();
+    if (!result.success) {
+      alert('Error: ' + (result.error || 'Unknown'));
+      return;
+    }
+
+    closeTaskDetailsModal();
+    await loadAllTasks();
+
+  } catch (error) {
+    alert('Error: ' + error.message);
+  }
+}
+
+async function deleteTask(taskId) {
+  if (!confirm('Delete this task?')) return;
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'deleteTask',
+        TaskID: taskId
+      })
+    });
+
+    const result = await response.json();
+    if (!result.success) {
+      alert('Error: ' + (result.error || 'Unknown'));
+      return;
+    }
+
+    closeTaskDetailsModal();
+    await loadAllTasks();
+
+  } catch (error) {
+    alert('Error: ' + error.message);
+  }
+}
+
+// ============================================================================
+// SETTINGS
 // ============================================================================
 
 function changeTheme(newTheme) {
-  if (!AppState.user) return;
-  AppState.user.theme = newTheme;
-  StorageManager.setUser(
-    AppState.user.userId,
-    AppState.user.userName,
-    AppState.user.partnerUserId,
-    AppState.user.partnerName,
-    newTheme
-  );
+  if (!currentUser) return;
+  currentUser.theme = newTheme;
+  localStorage.setItem('companion-user', JSON.stringify(currentUser));
   applyTheme();
-  console.log('✅ Theme changed to:', newTheme);
 }
 
 function switchUser() {
-  if (!confirm('Switch to ' + AppState.user.partnerName + "'s profile?")) {
-    return;
-  }
+  if (!confirm('Switch to ' + currentUser.partnerName + "'s profile?")) return;
 
-  // Swap user IDs
-  const oldUserId = AppState.user.userId;
-  const newUserId = AppState.user.partnerUserId;
-  const newTheme = newUserId === 'user1' ? 'his' : 'her';
+  const oldUserId = currentUser.userId;
+  currentUser.userId = currentUser.partnerId;
+  currentUser.partnerId = oldUserId;
 
-  // Update user
-  StorageManager.setUser(
-    newUserId,
-    AppState.user.partnerName,
-    oldUserId,
-    AppState.user.userName,
-    newTheme
-  );
+  const oldName = currentUser.userName;
+  currentUser.userName = currentUser.partnerName;
+  currentUser.partnerName = oldName;
 
-  AppState.init();
-  AppState.clearTasks(); // Clear old user's tasks
+  currentUser.theme = currentUser.userId === 'user1' ? 'his' : 'her';
 
-  // Reload everything
-  updateUI();
+  localStorage.setItem('companion-user', JSON.stringify(currentUser));
+
+  allTasks = [];
+  updateUILabels();
   applyTheme();
   goToPage('home');
-  loadTasksFromSheet();
-
-  showSuccess('Switched to ' + AppState.user.userName);
+  loadAllTasks();
 }
 
 function resetAllData() {
-  StorageManager.clearAll();
-}
-
-// ============================================================================
-// FILTERING
-// ============================================================================
-
-function filterHome(filterType) {
-  document.querySelectorAll('.home-filters .filter-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
-  event.target.classList.add('active');
-  renderHomePageTasks();
-}
-
-function filterMyTasks(filterType) {
-  document.querySelectorAll('.my-tasks-filters .filter-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
-  event.target.classList.add('active');
-  renderMyTasks();
-}
-
-function filterAssignedTasks(filterType) {
-  document.querySelectorAll('.assigned-filters .filter-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
-  event.target.classList.add('active');
-  renderAssignedTasks();
-}
-
-// ============================================================================
-// UI FEEDBACK
-// ============================================================================
-
-function showLoadingIndicator(show) {
-  const indicator = document.getElementById('loadingIndicator');
-  if (!indicator) {
-    const div = document.createElement('div');
-    div.id = 'loadingIndicator';
-    div.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.7);
-      color: white;
-      padding: 20px 30px;
-      border-radius: 12px;
-      z-index: 999;
-      font-size: 14px;
-      display: none;
-    `;
-    div.textContent = 'Loading...';
-    document.body.appendChild(div);
-  }
-  document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
-}
-
-function showError(message) {
-  console.error('❌ Error:', message);
-  alert('❌ ' + message);
-}
-
-function showSuccess(message) {
-  console.log('✅ Success:', message);
-  // Could show toast notification instead
-  const toast = document.createElement('div');
-  toast.textContent = '✅ ' + message;
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 100px;
-    right: 16px;
-    background: var(--color-primary);
-    color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    z-index: 999;
-    font-size: 14px;
-    font-weight: 600;
-    animation: slideInUp 300ms ease-out, slideOutDown 300ms ease-out 2700ms forwards;
-  `;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
-}
-
-function showSyncIndicator() {
-  // Brief visual feedback that sync happened
-  const icon = document.getElementById('syncIcon');
-  if (icon) {
-    icon.textContent = '✓';
-    setTimeout(() => { icon.textContent = ''; }, 1000);
-  }
-}
-
-// ============================================================================
-// TOUCH GESTURES - Pull to Refresh & Swipe
-// ============================================================================
-
-let touchStartY = 0;
-let touchStartX = 0;
-
-function setupTouchGestures() {
-  const pageContainer = document.querySelector('.page-container');
-  if (!pageContainer) return;
-
-  pageContainer.addEventListener('touchstart', (e) => {
-    touchStartY = e.touches[0].clientY;
-    touchStartX = e.touches[0].clientX;
-  });
-
-  pageContainer.addEventListener('touchend', (e) => {
-    const touchEndY = e.changedTouches[0].clientY;
-    const touchEndX = e.changedTouches[0].clientX;
-    const diffY = touchEndY - touchStartY;
-    const diffX = touchEndX - touchStartX;
-
-    // Pull to refresh (drag down from top)
-    if (pageContainer.scrollTop === 0 && diffY > 80) {
-      console.log('🔄 Pull to refresh');
-      loadTasksFromSheet();
-      return;
-    }
-
-    // Swipe navigation (swipe left/right)
-    if (Math.abs(diffX) > 50 && Math.abs(diffY) < 50) {
-      handleSwipeNavigation(diffX);
-    }
-  });
-}
-
-function handleSwipeNavigation(diffX) {
-  const navTabs = document.querySelectorAll('.nav-tab');
-  const activeTab = document.querySelector('.nav-tab.active');
-  if (!activeTab) return;
-
-  const currentIndex = Array.from(navTabs).indexOf(activeTab);
-  let nextIndex;
-
-  if (diffX > 0) {
-    // Swipe right - previous tab
-    nextIndex = currentIndex > 0 ? currentIndex - 1 : navTabs.length - 1;
-  } else {
-    // Swipe left - next tab
-    nextIndex = currentIndex < navTabs.length - 1 ? currentIndex + 1 : 0;
-  }
-
-  console.log('👆 Swipe:', diffX > 0 ? 'right' : 'left');
-  navTabs[nextIndex].click();
+  if (!confirm('Clear all data? Cannot undo!')) return;
+  localStorage.clear();
+  location.reload();
 }
 
 // ============================================================================
 // UTILITIES
 // ============================================================================
 
-function escapeHtml(text) {
-  if (!text) return '';
-  const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  };
-  return String(text).replace(/[&<>"']/g, m => map[m]);
+function togglePrivateFields() {
+  const isChecked = document.getElementById('taskPrivate').checked;
+  document.getElementById('privateFields').style.display = isChecked ? 'block' : 'none';
+}
+
+function filterHome(type) {
+  document.querySelectorAll('.home-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderHome();
+}
+
+function filterMyTasks(type) {
+  document.querySelectorAll('.my-tasks-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderMyTasks();
+}
+
+function filterAssignedTasks(type) {
+  document.querySelectorAll('.assigned-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderAssignedTasks();
 }
 
 // Keyboard shortcuts
@@ -1135,9 +578,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     document.getElementById('createTaskModal').style.display = 'none';
     document.getElementById('taskDetailsModal').style.display = 'none';
-    document.getElementById('passcodeModal').style.display = 'none';
   }
-
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
     e.preventDefault();
     openCreateTaskModal();
