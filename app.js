@@ -6,7 +6,7 @@
  * No complexity. No tricks. Just work.
  */
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbxw6S9AyirCQovkXmQ9jBQ_HxrizMqFcVeLhVkZJBYCsDJ5lkDaa4-2KevBTgnYFqg-eg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzY7xAh9eQHl6idW4W6i--7YIRjp7IbFGQ4a1k3IXxrnry1X1b7lRjmpUGMWpkUy1NCQg/exec';
 
 // Simple global state
 let currentUser = null;
@@ -16,6 +16,14 @@ let currentPage = 'home';
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 App Starting...');
+  
+  // Hide loading screen after a moment
+  setTimeout(() => {
+    const loadingEl = document.querySelector('.app-loading');
+    if (loadingEl) {
+      loadingEl.style.display = 'none';
+    }
+  }, 500);
   
   // Check if user exists
   const stored = localStorage.getItem('companion-user');
