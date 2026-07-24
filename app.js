@@ -6,7 +6,7 @@
  * No complexity. No tricks. Just work.
  */
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbzY7xAh9eQHl6idW4W6i--7YIRjp7IbFGQ4a1k3IXxrnry1X1b7lRjmpUGMWpkUy1NCQg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxw6S9AyirCQovkXmQ9jBQ_HxrizMqFcVeLhVkZJBYCsDJ5lkDaa4-2KevBTgnYFqg-eg/exec';
 
 // Simple global state
 let currentUser = null;
