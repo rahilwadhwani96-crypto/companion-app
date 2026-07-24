@@ -1,586 +1,315 @@
 /**
- * Companion App v3.1 - Clean Rewrite
- * Focus: Make it ACTUALLY WORK
+ * Google Apps Script - Backend for Companion App v3.1
  * 
- * Core principle: Fetch sheet data → Store in memory → Render to screen
- * No complexity. No tricks. Just work.
+ * Deploy as web app:
+ * 1. Click Deploy → New Deployment → Web App
+ * 2. Execute as: Your email
+ * 3. Who has access: Anyone
+ * 4. Copy deployment URL to app.js
  */
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbzY7xAh9eQHl6idW4W6i--7YIRjp7IbFGQ4a1k3IXxrnry1X1b7lRjmpUGMWpkUy1NCQg/exec';
-
-// Simple global state
-let currentUser = null;
-let allTasks = [];
-let currentPage = 'home';
-
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 App Starting...');
-  
-  // Check if user exists
-  const stored = localStorage.getItem('companion-user');
-  if (stored) {
-    try {
-      currentUser = JSON.parse(stored);
-      console.log('✅ User loaded:', currentUser.userName);
-      showMainApp();
-      updateUILabels();
-      loadAllTasks();
-    } catch (e) {
-      console.error('❌ Error loading user:', e);
-      showSetupWizard();
-    }
-  } else {
-    console.log('📋 No user found, showing setup');
-    showSetupWizard();
-  }
-});
+const SHEET_ID = '1-xkHL_SzI2oCIqBMzJxJQfhrOW8-svTjHoLxOtZNOr4';
+const SHEET = SpreadsheetApp.openById(SHEET_ID);
 
 // ============================================================================
-// SETUP
+// MAIN HANDLER
 // ============================================================================
 
-function showSetupWizard() {
-  document.getElementById('setupWizard').style.display = 'flex';
-  document.getElementById('mainApp').style.display = 'none';
-}
-
-function goToStep(step) {
-  document.querySelectorAll('.setup-step').forEach(s => s.classList.remove('active'));
-  document.getElementById('setupStep' + step).classList.add('active');
-}
-
-function completeSetup() {
-  const yourName = document.getElementById('yourName').value.trim();
-  const partnerName = document.getElementById('partnerName').value.trim();
-  const syncPin = document.getElementById('syncPin').value.trim();
-
-  if (!yourName || !partnerName || !syncPin) {
-    alert('Please fill all fields');
-    return;
-  }
-
-  // Determine if user1 or user2 based on sync pin
-  const isCreator = document.getElementById('pinOption').value === 'create';
-  const userId = isCreator ? 'user1' : 'user2';
-  const partnerId = isCreator ? 'user2' : 'user1';
-  const theme = isCreator ? 'his' : 'her';
-
-  currentUser = {
-    userId: userId,
-    userName: yourName,
-    partnerId: partnerId,
-    partnerName: partnerName,
-    theme: theme
-  };
-
-  localStorage.setItem('companion-user', JSON.stringify(currentUser));
-  console.log('✅ Setup complete:', currentUser);
-
-  showMainApp();
-  updateUILabels();
-  loadAllTasks();
-}
-
-// ============================================================================
-// MAIN APP
-// ============================================================================
-
-function showMainApp() {
-  document.getElementById('setupWizard').style.display = 'none';
-  document.getElementById('mainApp').style.display = 'flex';
-  applyTheme();
-}
-
-function updateUILabels() {
-  if (!currentUser) return;
-  
-  document.getElementById('settingYourName').textContent = currentUser.userName;
-  document.getElementById('settingPartnerName').textContent = currentUser.partnerName;
-  document.getElementById('themeSelector').value = currentUser.theme;
-  
-  const partnerLabel = document.getElementById('navAssignedLabel');
-  if (partnerLabel) partnerLabel.textContent = currentUser.partnerName + "'s";
-  
-  const assignOption = document.getElementById('assignToPartnerOption');
-  if (assignOption) assignOption.textContent = currentUser.partnerName;
-}
-
-function applyTheme() {
-  document.body.classList.remove('theme-his', 'theme-her');
-  document.body.classList.add('theme-' + currentUser.theme);
-}
-
-// ============================================================================
-// LOAD TASKS - THIS IS THE MOST IMPORTANT FUNCTION
-// ============================================================================
-
-async function loadAllTasks() {
-  console.log('📥 Loading tasks from sheet...');
-  
+function doPost(e) {
   try {
-    // Fetch from API
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'getTasks' })
-    });
+    const data = JSON.parse(e.postData.contents);
+    const action = data.action;
 
-    const result = await response.json();
-    console.log('📡 API Response:', result);
+    console.log('📥 Request received:', action);
 
-    if (!result.success || !result.data || !Array.isArray(result.data)) {
-      console.error('❌ Invalid API response:', result);
-      allTasks = [];
-      renderCurrentPage();
-      return;
+    if (action === 'getTasks') {
+      return getTasks();
+    } else if (action === 'createTask') {
+      return createTask(data);
+    } else if (action === 'updateTask') {
+      return updateTask(data);
+    } else if (action === 'deleteTask') {
+      return deleteTask(data);
+    } else {
+      return response(false, 'Unknown action: ' + action);
+    }
+  } catch (error) {
+    console.error('❌ Error:', error.toString());
+    return response(false, error.toString());
+  }
+}
+
+// ============================================================================
+// GET ALL TASKS
+// ============================================================================
+
+function getTasks() {
+  try {
+    console.log('📖 getTasks called');
+    
+    const tasksSheet = SHEET.getSheetByName('Tasks');
+    if (!tasksSheet) {
+      console.error('❌ Tasks sheet not found');
+      return response(false, 'Tasks sheet not found');
     }
 
-    // Store tasks in memory
-    allTasks = result.data;
-    console.log('✅ Tasks loaded:', allTasks.length, 'tasks');
-    console.log('   Tasks:', allTasks.map(t => ({ id: t.TaskID, title: t.Title, assigned: t.AssignedTo })));
+    // Get all data
+    const range = tasksSheet.getDataRange();
+    const values = range.getValues();
+    
+    console.log('📊 Sheet has', values.length, 'rows');
 
-    // Render current page
-    renderCurrentPage();
+    if (values.length < 2) {
+      console.log('✅ No tasks (only header row)');
+      return response(true, []);
+    }
+
+    // Get headers (first row)
+    const headers = values[0];
+    console.log('📋 Headers:', headers);
+
+    // Find column indices
+    const colIndex = {
+      TaskID: headers.indexOf('TaskID'),
+      Title: headers.indexOf('Title'),
+      Description: headers.indexOf('Description'),
+      AssignedTo: headers.indexOf('AssignedTo'),
+      CreatedBy: headers.indexOf('CreatedBy'),
+      Status: headers.indexOf('Status'),
+      Priority: headers.indexOf('Priority'),
+      Category: headers.indexOf('Category'),
+      DueDate: headers.indexOf('DueDate'),
+      IsPrivate: headers.indexOf('IsPrivate'),
+      ContentHash: headers.indexOf('ContentHash'),
+      DeletedAt: headers.indexOf('DeletedAt'),
+      CreatedAt: headers.indexOf('CreatedAt'),
+      UpdatedAt: headers.indexOf('UpdatedAt')
+    };
+
+    console.log('🔑 Column indices:', colIndex);
+
+    // Convert rows to objects
+    const tasks = [];
+    for (let i = 1; i < values.length; i++) {
+      const row = values[i];
+      
+      // Skip if row is empty or has no TaskID
+      if (!row[colIndex.TaskID]) continue;
+      
+      // Skip soft-deleted rows
+      if (row[colIndex.DeletedAt]) continue;
+
+      const task = {
+        TaskID: row[colIndex.TaskID],
+        Title: row[colIndex.Title],
+        Description: row[colIndex.Description],
+        AssignedTo: row[colIndex.AssignedTo],
+        CreatedBy: row[colIndex.CreatedBy],
+        Status: row[colIndex.Status],
+        Priority: row[colIndex.Priority],
+        Category: row[colIndex.Category],
+        DueDate: row[colIndex.DueDate],
+        IsPrivate: row[colIndex.IsPrivate],
+        ContentHash: row[colIndex.ContentHash],
+        CreatedAt: row[colIndex.CreatedAt],
+        UpdatedAt: row[colIndex.UpdatedAt]
+      };
+
+      tasks.push(task);
+    }
+
+    console.log('✅ Tasks parsed:', tasks.length, 'active tasks');
+    return response(true, tasks);
 
   } catch (error) {
-    console.error('❌ Error loading tasks:', error);
-    alert('Error loading tasks: ' + error.message);
+    console.error('❌ getTasks error:', error.toString());
+    return response(false, error.toString());
   }
-}
-
-// ============================================================================
-// NAVIGATE PAGES
-// ============================================================================
-
-function goToPage(pageName) {
-  currentPage = pageName;
-  
-  // Hide all pages
-  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-  
-  // Show current page
-  const pageEl = document.getElementById(pageName + 'Page');
-  if (pageEl) pageEl.style.display = 'block';
-
-  // Update nav
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.querySelector(`.nav-tab[data-page="${pageName}"]`)?.classList.add('active');
-
-  // Render
-  renderCurrentPage();
-}
-
-// ============================================================================
-// RENDER - THIS IS WHERE TASKS APPEAR ON SCREEN
-// ============================================================================
-
-function renderCurrentPage() {
-  console.log('🎨 Rendering page:', currentPage);
-  
-  if (currentPage === 'home') renderHome();
-  if (currentPage === 'myTasks') renderMyTasks();
-  if (currentPage === 'assignedToPartner') renderAssignedTasks();
-}
-
-function renderHome() {
-  const container = document.getElementById('homeTasksList');
-  if (!container) {
-    console.error('❌ homeTasksList not found!');
-    return;
-  }
-
-  const filterStatus = document.querySelector('.home-filters .filter-btn.active')?.textContent.toLowerCase() || 'all';
-  let tasks = filterTasks(allTasks, filterStatus);
-
-  console.log('🏠 Rendering home:', tasks.length, 'tasks with filter:', filterStatus);
-
-  if (tasks.length === 0) {
-    container.innerHTML = '<div class="empty-state-compact"><div class="empty-state-icon">✨</div><div class="empty-state-title">No tasks</div></div>';
-    return;
-  }
-
-  container.innerHTML = tasks.map(task => renderTaskCard(task)).join('');
-  attachTaskListeners();
-}
-
-function renderMyTasks() {
-  const container = document.getElementById('myTasksList');
-  if (!container) {
-    console.error('❌ myTasksList not found!');
-    return;
-  }
-
-  const filterStatus = document.querySelector('.my-tasks-filters .filter-btn.active')?.textContent.toLowerCase() || 'all';
-  let tasks = allTasks.filter(t => t.AssignedTo === currentUser.userId);
-  tasks = filterTasks(tasks, filterStatus);
-
-  console.log('📋 Rendering my tasks:', tasks.length, 'tasks');
-
-  if (tasks.length === 0) {
-    container.innerHTML = '<div class="empty-state-compact"><div class="empty-state-icon">📭</div><div class="empty-state-title">No tasks</div></div>';
-    return;
-  }
-
-  container.innerHTML = tasks.map(task => renderTaskCard(task)).join('');
-  attachTaskListeners();
-}
-
-function renderAssignedTasks() {
-  const container = document.getElementById('assignedTasksList');
-  if (!container) {
-    console.error('❌ assignedTasksList not found!');
-    return;
-  }
-
-  const filterStatus = document.querySelector('.assigned-filters .filter-btn.active')?.textContent.toLowerCase() || 'all';
-  let tasks = allTasks.filter(t => t.CreatedBy === currentUser.userId && t.AssignedTo === currentUser.partnerId);
-  tasks = filterTasks(tasks, filterStatus);
-
-  console.log('👥 Rendering assigned tasks:', tasks.length, 'tasks');
-
-  if (tasks.length === 0) {
-    container.innerHTML = '<div class="empty-state-compact"><div class="empty-state-icon">🎯</div><div class="empty-state-title">No tasks assigned</div></div>';
-    return;
-  }
-
-  container.innerHTML = tasks.map(task => renderTaskCard(task)).join('');
-  attachTaskListeners();
-}
-
-function filterTasks(tasks, status) {
-  if (status === 'open' || status === 'open') {
-    return tasks.filter(t => t.Status !== 'completed');
-  }
-  if (status === 'done' || status === 'completed') {
-    return tasks.filter(t => t.Status === 'completed');
-  }
-  return tasks;
-}
-
-function renderTaskCard(task) {
-  const isCompleted = task.Status === 'completed';
-  const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true;
-  
-  return `
-    <div class="task-card ${isCompleted ? 'completed' : ''}" onclick="clickTask('${task.TaskID}')">
-      <div class="task-info">
-        <div class="task-title ${isCompleted ? 'line-through' : ''}">${escapeHtml(task.Title || 'Untitled')}</div>
-        <div class="task-meta">
-          ${isPrivate ? '🔐 ' : ''}
-          ${task.Category ? '<span>' + escapeHtml(task.Category) + '</span>' : ''}
-          ${task.DueDate ? '<span>📅 ' + escapeHtml(task.DueDate) + '</span>' : ''}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function attachTaskListeners() {
-  document.querySelectorAll('.task-card').forEach(card => {
-    card.addEventListener('click', function(e) {
-      e.stopPropagation();
-    });
-  });
-}
-
-function escapeHtml(text) {
-  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-  return String(text).replace(/[&<>"']/g, m => map[m]);
 }
 
 // ============================================================================
 // CREATE TASK
 // ============================================================================
 
-function openCreateTaskModal() {
-  document.getElementById('createTaskModal').style.display = 'flex';
-  setTimeout(() => document.getElementById('taskTitle').focus(), 100);
-}
-
-function closeCreateTaskModal() {
-  document.getElementById('createTaskModal').style.display = 'none';
-  document.getElementById('taskTitle').value = '';
-  document.getElementById('taskDesc').value = '';
-  document.getElementById('taskAssignedTo').value = '';
-  document.getElementById('taskCategory').value = '';
-  document.getElementById('taskPriority').value = 'medium';
-  document.getElementById('taskDueDate').value = '';
-  document.getElementById('taskPrivate').checked = false;
-  document.getElementById('taskPasscode').value = '';
-}
-
-async function createTask() {
-  const title = document.getElementById('taskTitle').value.trim();
-  const description = document.getElementById('taskDesc').value.trim();
-  const assignedToValue = document.getElementById('taskAssignedTo').value;
-  const category = document.getElementById('taskCategory').value || '';
-  const priority = document.getElementById('taskPriority').value || 'medium';
-  const dueDate = document.getElementById('taskDueDate').value || '';
-  const isPrivate = document.getElementById('taskPrivate').checked;
-  const passcode = document.getElementById('taskPasscode').value.trim();
-
-  if (!title) { alert('Enter task title'); return; }
-  if (!assignedToValue) { alert('Select who this is for'); return; }
-  if (isPrivate && !passcode) { alert('Enter 4-digit passcode'); return; }
-
-  const assignedToId = assignedToValue === 'me' ? currentUser.userId : currentUser.partnerId;
-
-  console.log('📝 Creating task:');
-  console.log('   Title:', title);
-  console.log('   AssignedTo:', assignedToId);
-  console.log('   CreatedBy:', currentUser.userId);
-
+function createTask(data) {
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'createTask',
-        Title: title,
-        Description: description,
-        AssignedTo: assignedToId,
-        CreatedBy: currentUser.userId,
-        Category: category,
-        Priority: priority,
-        DueDate: dueDate,
-        Status: 'open',
-        IsPrivate: isPrivate ? 'TRUE' : 'FALSE',
-        ContentHash: isPrivate ? passcode : ''
-      })
-    });
+    console.log('✍️ createTask called');
+    console.log('   Title:', data.Title);
+    console.log('   AssignedTo:', data.AssignedTo);
+    console.log('   CreatedBy:', data.CreatedBy);
 
-    const result = await response.json();
-    console.log('📡 Create response:', result);
-
-    if (!result.success) {
-      alert('Error: ' + (result.error || 'Unknown error'));
-      return;
+    const tasksSheet = SHEET.getSheetByName('Tasks');
+    if (!tasksSheet) {
+      return response(false, 'Tasks sheet not found');
     }
 
-    console.log('✅ Task created in sheet');
-    closeCreateTaskModal();
+    // Generate unique TaskID
+    const taskId = 'task_' + Date.now();
+    const now = new Date().toISOString();
 
-    // CRITICAL: Reload tasks from sheet
-    console.log('⏳ Reloading all tasks from sheet...');
-    await loadAllTasks();
+    // Prepare row data
+    const headers = tasksSheet.getRange(1, 1, 1, tasksSheet.getLastColumn()).getValues()[0];
+    const row = [];
 
-    alert('Task created!');
-
-  } catch (error) {
-    console.error('❌ Create error:', error);
-    alert('Error: ' + error.message);
-  }
-}
-
-// ============================================================================
-// TASK ACTIONS
-// ============================================================================
-
-function clickTask(taskId) {
-  const task = allTasks.find(t => t.TaskID === taskId);
-  if (!task) return;
-
-  const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true;
-  const hasPasscode = (task.ContentHash || '').trim().length > 0;
-
-  if (isPrivate && hasPasscode) {
-    promptPasscode(taskId);
-  } else {
-    showTaskDetails(task);
-  }
-}
-
-function promptPasscode(taskId) {
-  const passcode = prompt('🔐 Enter passcode (4 digits):');
-  if (!passcode) return;
-
-  const task = allTasks.find(t => t.TaskID === taskId);
-  if (!task) return;
-
-  if (passcode.trim() !== (task.ContentHash || '').trim()) {
-    alert('❌ Incorrect passcode');
-    return;
-  }
-
-  showTaskDetails(task);
-}
-
-function showTaskDetails(task) {
-  document.getElementById('detailTaskTitle').textContent = task.Title;
-  
-  let html = `
-    <div class="task-detail-section">
-      <h3>Description</h3>
-      <p>${escapeHtml(task.Description) || 'No description'}</p>
-    </div>
-    <div class="task-detail-section">
-      <h3>Details</h3>
-      <div class="detail-row">
-        <span class="detail-label">Status:</span>
-        <span class="detail-value">${task.Status === 'completed' ? '✅ Completed' : '⏳ Open'}</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">Priority:</span>
-        <span class="detail-value">${escapeHtml(task.Priority || 'Medium')}</span>
-      </div>
-      ${task.Category ? `
-        <div class="detail-row">
-          <span class="detail-label">Category:</span>
-          <span class="detail-value">${escapeHtml(task.Category)}</span>
-        </div>
-      ` : ''}
-      ${task.DueDate ? `
-        <div class="detail-row">
-          <span class="detail-label">Due Date:</span>
-          <span class="detail-value">${escapeHtml(task.DueDate)}</span>
-        </div>
-      ` : ''}
-    </div>
-  `;
-
-  document.getElementById('detailTaskContent').innerHTML = html;
-  
-  const completeBtn = document.getElementById('completeDetailBtn');
-  completeBtn.textContent = task.Status === 'completed' ? 'Mark as Open' : 'Mark Complete';
-  completeBtn.onclick = () => completeTask(task.TaskID);
-
-  document.getElementById('taskDetailsModal').style.display = 'flex';
-}
-
-function closeTaskDetailsModal() {
-  document.getElementById('taskDetailsModal').style.display = 'none';
-}
-
-async function completeTask(taskId) {
-  const task = allTasks.find(t => t.TaskID === taskId);
-  if (!task) return;
-
-  const newStatus = task.Status === 'completed' ? 'open' : 'completed';
-
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'updateTask',
-        TaskID: taskId,
-        Status: newStatus
-      })
-    });
-
-    const result = await response.json();
-    if (!result.success) {
-      alert('Error: ' + (result.error || 'Unknown'));
-      return;
+    for (let i = 0; i < headers.length; i++) {
+      const header = headers[i];
+      
+      if (header === 'TaskID') row[i] = taskId;
+      else if (header === 'Title') row[i] = data.Title || '';
+      else if (header === 'Description') row[i] = data.Description || '';
+      else if (header === 'AssignedTo') row[i] = data.AssignedTo || '';
+      else if (header === 'CreatedBy') row[i] = data.CreatedBy || '';
+      else if (header === 'Status') row[i] = data.Status || 'open';
+      else if (header === 'Priority') row[i] = data.Priority || 'medium';
+      else if (header === 'Category') row[i] = data.Category || '';
+      else if (header === 'DueDate') row[i] = data.DueDate || '';
+      else if (header === 'IsPrivate') row[i] = data.IsPrivate || 'FALSE';
+      else if (header === 'ContentHash') row[i] = data.ContentHash || '';
+      else if (header === 'CreatedAt') row[i] = now;
+      else if (header === 'UpdatedAt') row[i] = now;
+      else row[i] = '';
     }
 
-    closeTaskDetailsModal();
-    await loadAllTasks();
+    // Append row to sheet
+    tasksSheet.appendRow(row);
+    console.log('✅ Task created with ID:', taskId);
+
+    // Return the created task
+    const task = {
+      TaskID: taskId,
+      Title: data.Title,
+      Description: data.Description,
+      AssignedTo: data.AssignedTo,
+      CreatedBy: data.CreatedBy,
+      Status: data.Status || 'open',
+      Priority: data.Priority || 'medium',
+      Category: data.Category || '',
+      DueDate: data.DueDate || '',
+      IsPrivate: data.IsPrivate || 'FALSE',
+      ContentHash: data.ContentHash || '',
+      CreatedAt: now,
+      UpdatedAt: now
+    };
+
+    return response(true, task);
 
   } catch (error) {
-    alert('Error: ' + error.message);
+    console.error('❌ createTask error:', error.toString());
+    return response(false, error.toString());
   }
 }
 
-async function deleteTask(taskId) {
-  if (!confirm('Delete this task?')) return;
+// ============================================================================
+// UPDATE TASK
+// ============================================================================
 
+function updateTask(data) {
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'deleteTask',
-        TaskID: taskId
-      })
-    });
+    console.log('✏️ updateTask called');
+    console.log('   TaskID:', data.TaskID);
+    console.log('   Updates:', Object.keys(data).filter(k => k !== 'action' && k !== 'TaskID'));
 
-    const result = await response.json();
-    if (!result.success) {
-      alert('Error: ' + (result.error || 'Unknown'));
-      return;
+    const tasksSheet = SHEET.getSheetByName('Tasks');
+    if (!tasksSheet) {
+      return response(false, 'Tasks sheet not found');
     }
 
-    closeTaskDetailsModal();
-    await loadAllTasks();
+    // Find the task row
+    const values = tasksSheet.getDataRange().getValues();
+    const headers = values[0];
+    const taskIdCol = headers.indexOf('TaskID');
+    
+    let foundRow = -1;
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][taskIdCol] === data.TaskID) {
+        foundRow = i + 1; // +1 because sheets are 1-indexed
+        break;
+      }
+    }
+
+    if (foundRow === -1) {
+      return response(false, 'Task not found: ' + data.TaskID);
+    }
+
+    console.log('   Found at row:', foundRow);
+
+    // Update fields
+    const now = new Date().toISOString();
+    for (let i = 0; i < headers.length; i++) {
+      const header = headers[i];
+      
+      if (data.hasOwnProperty(header)) {
+        tasksSheet.getRange(foundRow, i + 1).setValue(data[header]);
+      } else if (header === 'UpdatedAt') {
+        tasksSheet.getRange(foundRow, i + 1).setValue(now);
+      }
+    }
+
+    console.log('✅ Task updated');
+    return response(true, { success: true });
 
   } catch (error) {
-    alert('Error: ' + error.message);
+    console.error('❌ updateTask error:', error.toString());
+    return response(false, error.toString());
   }
 }
 
 // ============================================================================
-// SETTINGS
+// DELETE TASK (Soft Delete)
 // ============================================================================
 
-function changeTheme(newTheme) {
-  if (!currentUser) return;
-  currentUser.theme = newTheme;
-  localStorage.setItem('companion-user', JSON.stringify(currentUser));
-  applyTheme();
-}
+function deleteTask(data) {
+  try {
+    console.log('🗑️ deleteTask called');
+    console.log('   TaskID:', data.TaskID);
 
-function switchUser() {
-  if (!confirm('Switch to ' + currentUser.partnerName + "'s profile?")) return;
+    const tasksSheet = SHEET.getSheetByName('Tasks');
+    if (!tasksSheet) {
+      return response(false, 'Tasks sheet not found');
+    }
 
-  const oldUserId = currentUser.userId;
-  currentUser.userId = currentUser.partnerId;
-  currentUser.partnerId = oldUserId;
+    // Find the task row
+    const values = tasksSheet.getDataRange().getValues();
+    const headers = values[0];
+    const taskIdCol = headers.indexOf('TaskID');
+    const deletedAtCol = headers.indexOf('DeletedAt');
+    
+    let foundRow = -1;
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][taskIdCol] === data.TaskID) {
+        foundRow = i + 1;
+        break;
+      }
+    }
 
-  const oldName = currentUser.userName;
-  currentUser.userName = currentUser.partnerName;
-  currentUser.partnerName = oldName;
+    if (foundRow === -1) {
+      return response(false, 'Task not found: ' + data.TaskID);
+    }
 
-  currentUser.theme = currentUser.userId === 'user1' ? 'his' : 'her';
+    // Set DeletedAt timestamp (soft delete)
+    const now = new Date().toISOString();
+    tasksSheet.getRange(foundRow, deletedAtCol + 1).setValue(now);
 
-  localStorage.setItem('companion-user', JSON.stringify(currentUser));
+    console.log('✅ Task deleted (soft delete)');
+    return response(true, { success: true });
 
-  allTasks = [];
-  updateUILabels();
-  applyTheme();
-  goToPage('home');
-  loadAllTasks();
-}
-
-function resetAllData() {
-  if (!confirm('Clear all data? Cannot undo!')) return;
-  localStorage.clear();
-  location.reload();
-}
-
-// ============================================================================
-// UTILITIES
-// ============================================================================
-
-function togglePrivateFields() {
-  const isChecked = document.getElementById('taskPrivate').checked;
-  document.getElementById('privateFields').style.display = isChecked ? 'block' : 'none';
-}
-
-function filterHome(type) {
-  document.querySelectorAll('.home-filters .filter-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  renderHome();
-}
-
-function filterMyTasks(type) {
-  document.querySelectorAll('.my-tasks-filters .filter-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  renderMyTasks();
-}
-
-function filterAssignedTasks(type) {
-  document.querySelectorAll('.assigned-filters .filter-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  renderAssignedTasks();
-}
-
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    document.getElementById('createTaskModal').style.display = 'none';
-    document.getElementById('taskDetailsModal').style.display = 'none';
+  } catch (error) {
+    console.error('❌ deleteTask error:', error.toString());
+    return response(false, error.toString());
   }
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-    e.preventDefault();
-    openCreateTaskModal();
-  }
-});
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function response(success, data) {
+  const result = {
+    success: success,
+    data: data,
+    timestamp: new Date().toISOString()
+  };
+  console.log('📤 Response:', result);
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
