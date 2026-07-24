@@ -6,7 +6,7 @@
  * No complexity. No tricks. Just work.
  */
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbxw6S9AyirCQovkXmQ9jBQ_HxrizMqFcVeLhVkZJBYCsDJ5lkDaa4-2KevBTgnYFqg-eg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzY7xAh9eQHl6idW4W6i--7YIRjp7IbFGQ4a1k3IXxrnry1X1b7lRjmpUGMWpkUy1NCQg/exec';
 
 // Simple global state
 let currentUser = null;
@@ -58,18 +58,62 @@ function goToStep(step) {
   document.getElementById('setupStep' + step).classList.add('active');
 }
 
+function updatePinForm() {
+  const pinOption = document.getElementById('pinOption').value;
+  const pinInputDiv = document.getElementById('pinInputDiv');
+  const pinInput = document.getElementById('syncPin');
+  const pinMessage = document.getElementById('pinMessage');
+
+  if (pinOption === 'create') {
+    // Generate random 4-digit code
+    const newPin = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+    pinInput.value = newPin;
+    pinInput.disabled = true;
+    pinMessage.textContent = '👆 Share this code with your partner';
+    pinInputDiv.style.display = 'block';
+  } else if (pinOption === 'join') {
+    pinInput.value = '';
+    pinInput.disabled = false;
+    pinInput.focus();
+    pinMessage.textContent = '👆 Enter the code your partner gave you';
+    pinInputDiv.style.display = 'block';
+  } else {
+    pinInputDiv.style.display = 'none';
+  }
+}
+
 function completeSetup() {
   const yourName = document.getElementById('yourName').value.trim();
   const partnerName = document.getElementById('partnerName').value.trim();
+  const pinOption = document.getElementById('pinOption').value;
   const syncPin = document.getElementById('syncPin').value.trim();
 
-  if (!yourName || !partnerName || !syncPin) {
-    alert('Please fill all fields');
+  // Detailed validation
+  if (!yourName) {
+    alert('Please enter your name');
+    return;
+  }
+  if (!partnerName) {
+    alert('Please enter your partner\'s name');
+    return;
+  }
+  if (!pinOption) {
+    alert('Please select how to sync (Create or Join)');
+    return;
+  }
+  if (!syncPin) {
+    alert('Please enter the 4-digit code');
+    return;
+  }
+  if (syncPin.length !== 4 || !/^\d{4}$/.test(syncPin)) {
+    alert('Code must be exactly 4 digits (0-9)');
     return;
   }
 
+  console.log('📝 Setup:', { yourName, partnerName, pinOption, syncPin });
+
   // Determine if user1 or user2 based on sync pin
-  const isCreator = document.getElementById('pinOption').value === 'create';
+  const isCreator = pinOption === 'create';
   const userId = isCreator ? 'user1' : 'user2';
   const partnerId = isCreator ? 'user2' : 'user1';
   const theme = isCreator ? 'his' : 'her';
