@@ -626,14 +626,53 @@ function filterAssignedTasks(type) {
   renderAssignedTasks();
 }
 
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    document.getElementById('createTaskModal').style.display = 'none';
-    document.getElementById('taskDetailsModal').style.display = 'none';
+// ============================================================================
+// TOUCH GESTURES - Pull to Refresh & Swipe Navigation
+// ============================================================================
+
+let touchStartY = 0;
+let touchStartX = 0;
+
+document.addEventListener('touchstart', (e) => {
+  touchStartY = e.touches[0].clientY;
+  touchStartX = e.touches[0].clientX;
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+  const touchEndY = e.changedTouches[0].clientY;
+  const touchEndX = e.changedTouches[0].clientX;
+  const diffY = touchEndY - touchStartY;
+  const diffX = touchEndX - touchStartX;
+
+  const pageContainer = document.querySelector('main');
+  if (!pageContainer) return;
+
+  // Pull to refresh (drag down from top)
+  if (pageContainer.scrollTop === 0 && diffY > 80) {
+    console.log('🔄 Pull to refresh detected');
+    loadAllTasks();
+    return;
   }
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-    e.preventDefault();
-    openCreateTaskModal();
+
+  // Swipe navigation (swipe left/right)
+  if (Math.abs(diffX) > 50 && Math.abs(diffY) < 50) {
+    handleSwipeNavigation(diffX);
   }
-});
+}, { passive: true });
+
+function handleSwipeNavigation(diffX) {
+  const tabs = ['home', 'myTasks', 'assignedToPartner', 'timeline', 'settings'];
+  const currentIndex = tabs.indexOf(currentPage);
+  let nextIndex;
+
+  if (diffX > 0) {
+    // Swipe right - previous tab
+    nextIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
+  } else {
+    // Swipe left - next tab
+    nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
+  }
+
+  console.log('👆 Swipe:', diffX > 0 ? 'right ←' : 'left →', 'to:', tabs[nextIndex]);
+  goToPage(tabs[nextIndex]);
+}
