@@ -403,15 +403,24 @@ function applyTheme() {
 // ============================================================================
 
 function goToPage(pageName) {
+  console.log('📄 goToPage called:', pageName);
+  
   // Hide all pages
   document.querySelectorAll('.page').forEach(page => {
     page.style.display = 'none';
   });
 
   // Show selected page
-  const pageElement = document.getElementById(`${pageName}Page`);
+  const pageId = `${pageName}Page`;
+  const pageElement = document.getElementById(pageId);
+  console.log('   - Looking for page element with id:', pageId);
+  console.log('   - Found:', !!pageElement);
+  
   if (pageElement) {
     pageElement.style.display = 'block';
+    console.log('   - Page displayed');
+  } else {
+    console.error('   ❌ Page element not found!');
   }
 
   // Update nav active state
@@ -436,26 +445,53 @@ function goToPage(pageName) {
 // ============================================================================
 
 async function loadTasksFromSheet() {
-  console.log('⏳ Fetching tasks from sheet...');
+  console.log('⏳ [STEP 1] Fetching tasks from sheet...');
   showLoadingIndicator(true);
 
   try {
+    console.log('📡 Making API call to getTasks...');
     const result = await API.getTasks();
 
-    if (result.success && result.data) {
-      // Update AppState with fresh data from sheet
-      AppState.setTasksFromSheet(result.data);
-      console.log('✅ Tasks loaded from sheet');
-
-      // Re-render current page
-      renderCurrentPage();
-      showSyncIndicator();
-    } else {
-      console.error('❌ Failed to load tasks:', result.error);
+    console.log('📥 API Response:', result);
+    console.log('   - success:', result.success);
+    console.log('   - data length:', result.data ? result.data.length : 'NO DATA');
+    
+    if (!result.success) {
+      console.error('❌ API returned success=false:', result.error);
       showError('Failed to load tasks: ' + (result.error || 'Unknown error'));
+      showLoadingIndicator(false);
+      return;
     }
+
+    if (!result.data) {
+      console.error('❌ API returned no data');
+      showError('No data returned from API');
+      showLoadingIndicator(false);
+      return;
+    }
+
+    if (!Array.isArray(result.data)) {
+      console.error('❌ API data is not an array:', typeof result.data);
+      showError('Invalid data format from API');
+      showLoadingIndicator(false);
+      return;
+    }
+
+    console.log('✅ API returned valid data, updating AppState...');
+    AppState.setTasksFromSheet(result.data);
+    
+    console.log('📊 AppState.tasks updated:');
+    console.log('   - Total tasks:', AppState.tasks.length);
+    console.log('   - Tasks:', AppState.tasks.map(t => ({ id: t.TaskID, title: t.Title, assigned: t.AssignedTo })));
+    
+    console.log('🎨 [STEP 3] Rendering current page:', AppState.currentPage);
+    renderCurrentPage();
+    
+    console.log('✅ Tasks loaded and rendered successfully');
+    showSyncIndicator();
   } catch (error) {
     console.error('❌ Load tasks error:', error);
+    console.error('   Stack:', error.stack);
     showError('Connection error: ' + error.message);
   } finally {
     showLoadingIndicator(false);
@@ -463,9 +499,21 @@ async function loadTasksFromSheet() {
 }
 
 function renderCurrentPage() {
-  if (AppState.currentPage === 'home') renderHomePageTasks();
-  if (AppState.currentPage === 'myTasks') renderMyTasks();
-  if (AppState.currentPage === 'assignedToPartner') renderAssignedTasks();
+  console.log('🎨 renderCurrentPage called for:', AppState.currentPage);
+  console.log('   - AppState.tasks.length:', AppState.tasks.length);
+  
+  if (AppState.currentPage === 'home') {
+    console.log('   - Rendering home page...');
+    renderHomePageTasks();
+  }
+  if (AppState.currentPage === 'myTasks') {
+    console.log('   - Rendering my tasks page...');
+    renderMyTasks();
+  }
+  if (AppState.currentPage === 'assignedToPartner') {
+    console.log('   - Rendering assigned tasks page...');
+    renderAssignedTasks();
+  }
 }
 
 // ============================================================================
@@ -473,12 +521,22 @@ function renderCurrentPage() {
 // ============================================================================
 
 function renderHomePageTasks() {
+  console.log('🏠 renderHomePageTasks called');
   const filterStatus = document.querySelector('.home-filters .filter-btn.active')?.textContent.toLowerCase() || 'all';
+  console.log('   - Filter status:', filterStatus);
+  
   let tasks = AppState.getAllTasks(filterStatus === 'all' ? 'all' : filterStatus === 'open' ? 'open' : 'completed');
+  console.log('   - Filtered tasks count:', tasks.length);
+  console.log('   - Tasks:', tasks.map(t => ({ id: t.TaskID, title: t.Title })));
 
   const container = document.getElementById('homeTasksList');
+  if (!container) {
+    console.error('   ❌ homeTasksList container not found!');
+    return;
+  }
   
   if (tasks.length === 0) {
+    console.log('   - No tasks, showing empty state');
     container.innerHTML = `
       <div class="empty-state-compact">
         <div class="empty-state-icon">✨</div>
@@ -820,23 +878,31 @@ async function createTask() {
 
     const result = await API.createTask(taskData);
 
+    console.log('📥 Create task response:', result);
+    console.log('   - success:', result.success);
+    console.log('   - data:', result.data);
+
     if (!result.success) {
+      console.error('❌ Create task failed:', result.error);
       showError('Failed to create task: ' + (result.error || 'Unknown error'));
       return;
     }
+
+    console.log('✅ Task created in sheet, now storing photo...');
 
     // Store photo if exists (in localStorage, NOT in sheet)
     if (photoInput.files && photoInput.files[0]) {
       const reader = new FileReader();
       reader.onload = (e) => {
+        console.log('📸 Storing photo for task:', result.data.TaskID);
         StorageManager.storePhoto(result.data.TaskID, e.target.result);
       };
       reader.readAsDataURL(photoInput.files[0]);
     }
 
-    // STEP 1: FETCH fresh data
+    console.log('⏳ [STEP 2] FETCHING fresh data from sheet...');
     await loadTasksFromSheet();
-    // STEP 3: RENDER (done by loadTasksFromSheet)
+    console.log('✅ [STEP 3] RENDERING complete');
 
     closeCreateTaskModal();
     showSuccess('Task created!');
