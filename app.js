@@ -430,35 +430,69 @@ async function createTask() {
 // ============================================================================
 
 function clickTask(taskId) {
+  console.log('👆 Task clicked:', taskId);
+  
   const task = allTasks.find(t => t.TaskID === taskId);
-  if (!task) return;
+  if (!task) {
+    console.error('❌ Task not found:', taskId);
+    return;
+  }
+
+  console.log('📝 Task found:', task.Title);
+  console.log('🔒 IsPrivate:', task.IsPrivate);
+  console.log('🔐 ContentHash:', task.ContentHash);
 
   const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true;
   const hasPasscode = (task.ContentHash || '').trim().length > 0;
 
+  console.log('✅ isPrivate:', isPrivate, 'hasPasscode:', hasPasscode);
+
   if (isPrivate && hasPasscode) {
+    console.log('🔐 Prompting for passcode...');
     promptPasscode(taskId);
   } else {
+    console.log('📖 Showing task details...');
     showTaskDetails(task);
   }
 }
 
 function promptPasscode(taskId) {
   const passcode = prompt('🔐 Enter passcode (4 digits):');
-  if (!passcode) return;
+  console.log('📝 Passcode entered:', passcode ? 'Yes' : 'No');
+  
+  if (!passcode) {
+    console.log('❌ Passcode cancelled');
+    return;
+  }
 
   const task = allTasks.find(t => t.TaskID === taskId);
-  if (!task) return;
+  if (!task) {
+    console.error('❌ Task not found:', taskId);
+    return;
+  }
 
-  if (passcode.trim() !== (task.ContentHash || '').trim()) {
+  const correctPasscode = (task.ContentHash || '').trim();
+  const enteredPasscode = passcode.trim();
+
+  console.log('🔐 Checking passcode...');
+  console.log('  Expected:', correctPasscode);
+  console.log('  Entered:', enteredPasscode);
+  console.log('  Match:', correctPasscode === enteredPasscode);
+
+  if (enteredPasscode !== correctPasscode) {
+    console.error('❌ Incorrect passcode');
     alert('❌ Incorrect passcode');
     return;
   }
 
+  console.log('✅ Passcode correct!');
   showTaskDetails(task);
 }
 
 function showTaskDetails(task) {
+  console.log('📖 Showing task details for:', task.TaskID);
+  
+  currentTaskId = task.TaskID;
   document.getElementById('detailTaskTitle').textContent = task.Title;
   
   let html = `
@@ -497,7 +531,13 @@ function showTaskDetails(task) {
   completeBtn.textContent = task.Status === 'completed' ? 'Mark as Open' : 'Mark Complete';
   completeBtn.onclick = () => completeTask(task.TaskID);
 
-  document.getElementById('taskDetailsModal').style.display = 'flex';
+  const taskDetailsModal = document.getElementById('taskDetailsModal');
+  if (taskDetailsModal) {
+    taskDetailsModal.style.display = 'flex';
+    console.log('✅ Task details modal opened');
+  } else {
+    console.error('❌ Task details modal not found!');
+  }
 }
 
 function closeTaskDetailsModal() {
