@@ -323,7 +323,12 @@ function filterTasks(tasks, status) {
 
 function renderTaskCard(task) {
   const isCompleted = task.Status === 'completed';
-  const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true;
+  
+  // DEBUG: Check what IsPrivate value we're getting
+  const isPrivateRaw = task.IsPrivate;
+  const isPrivate = isPrivateRaw === 'TRUE' || isPrivateRaw === true || String(isPrivateRaw).toUpperCase() === 'TRUE';
+  
+  console.log(`🔍 Task "${task.Title}": IsPrivate="${isPrivateRaw}" (type: ${typeof isPrivateRaw}) → shows lock: ${isPrivate}`);
   
   return `
     <div class="task-card ${isCompleted ? 'completed' : ''}" onclick="clickTask('${task.TaskID}')">
@@ -449,13 +454,12 @@ function clickTask(taskId) {
     title: task.Title,
     IsPrivate: task.IsPrivate,
     IsPrivate_type: typeof task.IsPrivate,
-    IsPrivate_length: (task.IsPrivate || '').length,
     ContentHash: task.ContentHash,
-    ContentHash_type: typeof task.ContentHash,
-    ContentHash_length: (task.ContentHash || '').length
+    ContentHash_type: typeof task.ContentHash
   });
 
-  const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true;
+  // Match renderTaskCard logic: handle uppercase, boolean, or string 'TRUE'
+  const isPrivate = task.IsPrivate === 'TRUE' || task.IsPrivate === true || String(task.IsPrivate).toUpperCase() === 'TRUE';
   const hasPasscode = (task.ContentHash || '').trim().length > 0;
 
   console.log('🔐 Checks:', {
